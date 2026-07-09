@@ -14,126 +14,122 @@ app.use(express.json());
 // Health Check
 // =================================
 
-app.get("/health", (req,res)=>{
+app.get("/health", (req, res) => {
 
   res.json({
-    ok:true,
-    service:"memory-mcp-server"
+    ok: true,
+    service: "memory-mcp-server"
   });
 
 });
 
 
+
 // =================================
-// MCP Server作成
+// MCP Server 作成
 // =================================
 
-function createMcpServer(){
+function createMcpServer() {
+
 
   const server = new McpServer({
 
-    name:"memory-mcp-server",
+    name: "memory-mcp-server",
 
-    version:"1.0.0"
+    version: "1.0.0"
 
   });
 
 
-  // ===============================
+
+  // =================================
   // save_memory
-  // ===============================
+  // =================================
 
   server.registerTool(
 
     "save_memory",
 
     {
-      title:"Save Memory",
+      title: "Save Memory",
 
-      description:"情報をSQLiteへ保存します",
+      description: "情報をSQLiteへ保存します",
 
-      inputSchema:{
+      inputSchema: {
 
-        key:z.string(),
+        key: z.string(),
 
-        value:z.string()
+        value: z.string()
 
       }
 
     },
 
 
-    async({key,value})=>{
+    async ({ key, value }) => {
 
 
-      return new Promise((resolve)=>{
+      try {
 
 
-        db.run(
+        const stmt = db.prepare(`
 
-          `
           INSERT INTO memories(key,value)
+
           VALUES(?,?)
 
           ON CONFLICT(key)
+
           DO UPDATE SET value=excluded.value
-          `,
 
-          [
-            key,
-            value
-          ],
+        `);
 
 
-          (err)=>{
-
-
-            if(err){
-
-              resolve({
-
-                content:[
-
-                  {
-                    type:"text",
-
-                    text:"保存エラー:"+err.message
-
-                  }
-
-                ]
-
-              });
-
-            }else{
-
-
-              resolve({
-
-                content:[
-
-                  {
-
-                    type:"text",
-
-                    text:`保存しました ${key}=${value}`
-
-                  }
-
-                ]
-
-              });
-
-
-            }
-
-
-          }
-
+        stmt.run(
+          key,
+          value
         );
 
 
-      });
+        return {
+
+          content: [
+
+            {
+
+              type: "text",
+
+              text:
+                `保存しました ${key}=${value}`
+
+            }
+
+          ]
+
+        };
+
+
+      } catch (error) {
+
+
+        return {
+
+          content: [
+
+            {
+
+              type: "text",
+
+              text:
+                "保存エラー: " + error.message
+
+            }
+
+          ]
+
+        };
+
+      }
 
 
     }
@@ -142,10 +138,11 @@ function createMcpServer(){
 
 
 
-  // ===============================
-  // get_memory
-  // ===============================
 
+
+  // =================================
+  // get_memory
+  // =================================
 
   server.registerTool(
 
@@ -153,121 +150,108 @@ function createMcpServer(){
 
     {
 
-      title:"Get Memory",
+      title: "Get Memory",
 
-      description:"SQLiteから記憶を取得します",
+      description:
+        "SQLiteから記憶を取得します",
 
-      inputSchema:{
+      inputSchema: {
 
-        key:z.string()
+        key: z.string()
 
       }
 
     },
 
 
-    async({key})=>{
+    async ({ key }) => {
 
 
-      return new Promise((resolve)=>{
+      try {
 
 
-        db.get(
+        const row = db.prepare(`
 
-          `
           SELECT value
+
           FROM memories
+
           WHERE key=?
-          `,
 
-          [
-            key
-          ],
+        `).get(key);
 
 
-          (err,row)=>{
+
+        if (row) {
 
 
-            if(err){
+          return {
+
+            content: [
+
+              {
+
+                type: "text",
+
+                text: row.value
+
+              }
+
+            ]
+
+          };
 
 
-              resolve({
-
-                content:[
-
-                  {
-
-                    type:"text",
-
-                    text:"取得エラー:"+err.message
-
-                  }
-
-                ]
-
-              });
+        }
 
 
-            }
 
-            else if(row){
+        return {
 
+          content: [
 
-              resolve({
+            {
 
-                content:[
+              type: "text",
 
-                  {
-
-                    type:"text",
-
-                    text:row.value
-
-                  }
-
-                ]
-
-              });
-
+              text: "記憶がありません"
 
             }
 
-            else{
+          ]
+
+        };
 
 
-              resolve({
 
-                content:[
+      } catch (error) {
 
-                  {
 
-                    type:"text",
+        return {
 
-                    text:"記憶がありません"
+          content: [
 
-                  }
+            {
 
-                ]
+              type: "text",
 
-              });
-
+              text:
+                "取得エラー: " + error.message
 
             }
 
+          ]
 
-          }
-
-
-        );
+        };
 
 
-      });
+      }
 
 
     }
 
-
   );
+
 
 
   return server;
@@ -280,27 +264,33 @@ function createMcpServer(){
 // MCP Endpoint
 // =================================
 
-
-app.post("/mcp", async(req,res)=>{
+app.post("/mcp", async (req, res) => {
 
 
   const server = createMcpServer();
 
 
-  const transport = new StreamableHTTPServerTransport({
+  const transport =
+    new StreamableHTTPServerTransport({
 
-    sessionIdGenerator: undefined
+      sessionIdGenerator: undefined
 
-  });
+    });
+
 
 
   await server.connect(transport);
 
 
+
   await transport.handleRequest(
+
     req,
+
     res,
+
     req.body
+
   );
 
 
@@ -308,20 +298,19 @@ app.post("/mcp", async(req,res)=>{
 
 
 
+
 // =================================
-// Start
+// Server Start
 // =================================
 
+const PORT =
+  process.env.PORT || 3000;
 
-const PORT = process.env.PORT || 3000;
 
-
-app.listen(PORT,()=>{
-
+app.listen(PORT, () => {
 
   console.log(
     `Memory MCP Server running on port ${PORT}`
   );
-
 
 });
