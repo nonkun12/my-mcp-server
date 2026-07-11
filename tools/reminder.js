@@ -38,6 +38,9 @@ export function registerReminderTools(server) {
 
     async ({ user_id, remind_at, message }) => {
 
+      // 診断用: 重複呼び出しの有無を確認するため、呼ばれるたびに記録する
+      console.error(`[TOOL CALL] set_reminder user_id=${user_id} remind_at=${remind_at} message=${message}`);
+
       try {
 
         const parsed = new Date(remind_at);
@@ -105,6 +108,8 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id }) => {
+
+      console.error(`[TOOL CALL] list_reminders user_id=${user_id}`);
 
       try {
 
@@ -180,6 +185,8 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id, id }) => {
+
+      console.error(`[TOOL CALL] cancel_reminder user_id=${user_id} id=${id}`);
 
       try {
 
