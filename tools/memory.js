@@ -4,10 +4,10 @@ import db from "../database.js";
 // =================================
 // memory系ツールの登録
 // =================================
-// save_memory / get_memory をまとめてここで管理する。
-// 今後 calendar.js, search.js のような形でツールを増やす際は、
-// このファイルと同じ形(registerXxxTools(server) を export する)で追加し、
-// tools/index.js に1行足すだけで済むようにする。
+// save_memory / get_memory はどちらも user_id を必須パラメータとして受け取る。
+// これにより、呼び出し元のクライアント(LINE Bot、将来のDiscord Botなど)が
+// 独自の命名規則(keyにuser_idを前置する等)に頼らなくても、
+// MCPサーバー側で確実にユーザーごとの記憶を分離できる。
 export function registerMemoryTools(server) {
 
   server.registerTool(
@@ -17,9 +17,11 @@ export function registerMemoryTools(server) {
     {
       title: "Save Memory",
 
-      description: "情報をSQLiteへ保存します",
+      description: "特定ユーザーの情報をkey/valueの形でSQLiteへ保存します",
 
       inputSchema: {
+
+        user_id: z.string().describe("記憶の持ち主を識別するID(呼び出し元クライアントが指定)"),
 
         key: z.string(),
 
@@ -30,7 +32,7 @@ export function registerMemoryTools(server) {
     },
 
 
-    async ({ key, value }) => {
+    async ({ user_id, key, value }) => {
 
 
       try {
@@ -38,11 +40,11 @@ export function registerMemoryTools(server) {
 
         const stmt = db.prepare(`
 
-          INSERT INTO memories(key,value)
+          INSERT INTO memories(user_id, key, value)
 
-          VALUES(?,?)
+          VALUES(?,?,?)
 
-          ON CONFLICT(key)
+          ON CONFLICT(user_id, key)
 
           DO UPDATE SET value=excluded.value
 
@@ -50,6 +52,7 @@ export function registerMemoryTools(server) {
 
 
         stmt.run(
+          user_id,
           key,
           value
         );
@@ -110,9 +113,11 @@ export function registerMemoryTools(server) {
       title: "Get Memory",
 
       description:
-        "SQLiteから記憶を取得します",
+        "特定ユーザーの記憶をSQLiteから取得します",
 
       inputSchema: {
+
+        user_id: z.string().describe("記憶の持ち主を識別するID(呼び出し元クライアントが指定)"),
 
         key: z.string()
 
@@ -121,7 +126,7 @@ export function registerMemoryTools(server) {
     },
 
 
-    async ({ key }) => {
+    async ({ user_id, key }) => {
 
 
       try {
@@ -133,9 +138,9 @@ export function registerMemoryTools(server) {
 
           FROM memories
 
-          WHERE key=?
+          WHERE user_id=? AND key=?
 
-        `).get(key);
+        `).get(user_id, key);
 
 
 

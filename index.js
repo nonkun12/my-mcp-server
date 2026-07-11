@@ -2,6 +2,7 @@ import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerAllTools } from "./tools/index.js";
+import db from "./database.js";
 
 
 const app = express();
@@ -179,6 +180,69 @@ app.delete("/mcp", requireApiKey, (req, res) => {
 
 
 // =================================
+// リマインダー・スケジューラー
+// =================================
+// 1分ごとに、送信予定時刻を過ぎていてまだ送っていないリマインダーを探し、
+// LINE Bot側の内部エンドポイントを叩いて実際の送信(push)を依頼する。
+// MCPサーバー自身はLINEのトークンを持たない(役割分担を守るため)。
+const LINE_BOT_PUSH_URL = process.env.LINE_BOT_PUSH_URL;
+const INTERNAL_PUSH_KEY = process.env.INTERNAL_PUSH_KEY;
+
+async function checkAndSendReminders() {
+
+  if (!LINE_BOT_PUSH_URL || !INTERNAL_PUSH_KEY) {
+    // 未設定ならスケジューラー自体を無効化(起動時に一度だけ警告)
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  const due = db.prepare(`
+    SELECT id, user_id, message
+    FROM reminders
+    WHERE sent = 0 AND remind_at <= ?
+  `).all(now);
+
+  for (const reminder of due) {
+
+    try {
+
+      const res = await fetch(LINE_BOT_PUSH_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-key": INTERNAL_PUSH_KEY
+        },
+        body: JSON.stringify({
+          user_id: reminder.user_id,
+          message: reminder.message
+        })
+      });
+
+      if (res.ok) {
+        db.prepare("UPDATE reminders SET sent = 1 WHERE id = ?").run(reminder.id);
+        console.log(`リマインダー送信成功: id=${reminder.id}`);
+      } else {
+        console.error(`リマインダー送信失敗: id=${reminder.id}, status=${res.status}`);
+      }
+
+    } catch (error) {
+      console.error(`リマインダー送信エラー: id=${reminder.id}`, error);
+    }
+
+  }
+
+}
+
+if (LINE_BOT_PUSH_URL && INTERNAL_PUSH_KEY) {
+  setInterval(checkAndSendReminders, 60 * 1000);
+  console.log("リマインダー・スケジューラーを起動しました(60秒間隔)");
+} else {
+  console.warn("LINE_BOT_PUSH_URL または INTERNAL_PUSH_KEY が未設定のため、リマインダー送信は無効です");
+}
+
+
+// =================================
 // 予期しないエラーのログ(原因究明用)
 // =================================
 process.on("uncaughtException", (err) => {
@@ -205,4 +269,3 @@ app.listen(PORT, () => {
   );
 
 });
-// disk永続性の確認用デプロイ
