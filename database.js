@@ -44,6 +44,14 @@ async function initDb() {
     )
   `);
 
+  // 繰り返しリマインダー対応。repeat='daily' の場合、送信成功のたびに
+  // remind_at を翌日の同時刻へ更新し続ける(sentはfalseのまま)。
+  // 既存テーブルに対しても安全に追加できるよう IF NOT EXISTS を使う。
+  await pool.query(`
+    ALTER TABLE reminders
+    ADD COLUMN IF NOT EXISTS repeat TEXT NOT NULL DEFAULT 'none'
+  `);
+
   console.error("✅ Postgres接続・テーブル初期化 完了");
 }
 

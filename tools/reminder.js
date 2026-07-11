@@ -19,17 +19,25 @@ export function registerReminderTools(server) {
       title: "Set Reminder",
       description:
         "指定した日時にユーザーへリマインドメッセージを送るよう予約します。" +
-        "remind_atはISO 8601形式の日時文字列(例: 2026-07-12T15:00:00+09:00)で指定してください。",
+        "remind_atはISO 8601形式の日時文字列(例: 2026-07-12T15:00:00+09:00)で指定してください。" +
+        "ユーザーが「毎日」「毎朝」のように繰り返しを希望した場合は repeat='daily' を指定してください。" +
+        "その場合、remind_atは1回目に送る日時(以降は毎日同じ時刻に自動継続)にしてください。",
       inputSchema: {
         user_id: z.string().describe("リマインド対象のユーザーID"),
         remind_at: z.string().describe("ISO 8601形式の日時(タイムゾーン付き推奨)"),
-        message: z.string().describe("リマインド時に送る内容")
+        message: z.string().describe("リマインド時に送る内容"),
+        repeat: z
+          .enum(["none", "daily"])
+          .optional()
+          .describe("繰り返しの種類。'daily'を指定すると毎日同じ時刻に繰り返す。指定がなければ単発(none)。")
       }
     },
 
-    async ({ user_id, remind_at, message }) => {
+    async ({ user_id, remind_at, message, repeat }) => {
       // 診断用: 重複呼び出しの有無を確認するため、呼ばれるたびに記録する
-      console.error(`[TOOL CALL] set_reminder user_id=${user_id} remind_at=${remind_at} message=${message}`);
+      console.error(`[TOOL CALL] set_reminder user_id=${user_id} remind_at=${remind_at} message=${message} repeat=${repeat}`);
+
+      const repeatValue = repeat === "daily" ? "daily" : "none";
 
       try {
         const parsed = new Date(remind_at);
@@ -47,17 +55,19 @@ export function registerReminderTools(server) {
 
         await pool.query(
           `
-          INSERT INTO reminders(user_id, remind_at, message, sent)
-          VALUES ($1, $2, $3, false)
+          INSERT INTO reminders(user_id, remind_at, message, sent, repeat)
+          VALUES ($1, $2, $3, false, $4)
           `,
-          [user_id, parsed, message]
+          [user_id, parsed, message, repeatValue]
         );
+
+        const repeatNote = repeatValue === "daily" ? "(毎日繰り返し)" : "";
 
         return {
           content: [
             {
               type: "text",
-              text: `リマインダーを登録しました: ${parsed.toISOString()} に「${message}」`
+              text: `リマインダーを登録しました: ${parsed.toISOString()} に「${message}」${repeatNote}`
             }
           ]
         };
@@ -94,7 +104,7 @@ export function registerReminderTools(server) {
       try {
         const result = await pool.query(
           `
-          SELECT id, remind_at, message
+          SELECT id, remind_at, message, repeat
           FROM reminders
           WHERE user_id = $1 AND sent = false
           ORDER BY remind_at ASC
@@ -113,9 +123,10 @@ export function registerReminderTools(server) {
           };
         }
 
-        const lines = result.rows.map(
-          (r) => `id=${r.id}: ${r.remind_at.toISOString()} に「${r.message}」`
-        );
+        const lines = result.rows.map((r) => {
+          const repeatNote = r.repeat === "daily" ? "(毎日繰り返し)" : "";
+          return `id=${r.id}: ${r.remind_at.toISOString()} に「${r.message}」${repeatNote}`;
+        });
 
         return {
           content: [

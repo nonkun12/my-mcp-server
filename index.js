@@ -199,7 +199,7 @@ async function checkAndSendReminders() {
 
   try {
     const result = await db.query(`
-      SELECT id, user_id, message
+      SELECT id, user_id, message, repeat
       FROM reminders
       WHERE sent = false AND remind_at <= NOW()
     `);
@@ -226,8 +226,19 @@ async function checkAndSendReminders() {
       });
 
       if (res.ok) {
-        await db.query("UPDATE reminders SET sent = true WHERE id = $1", [reminder.id]);
-        console.log(`リマインダー送信成功: id=${reminder.id}`);
+        if (reminder.repeat === "daily") {
+          // 単発リマインダーとは異なり、sentはfalseのままにして、
+          // remind_atだけ翌日の同時刻へ進める。これにより次回のループで
+          // 再び拾われ、毎日繰り返し送信される。
+          await db.query(
+            "UPDATE reminders SET remind_at = remind_at + interval '1 day' WHERE id = $1",
+            [reminder.id]
+          );
+          console.log(`リマインダー送信成功(繰り返し・次回へ更新): id=${reminder.id}`);
+        } else {
+          await db.query("UPDATE reminders SET sent = true WHERE id = $1", [reminder.id]);
+          console.log(`リマインダー送信成功: id=${reminder.id}`);
+        }
       } else {
         console.error(`リマインダー送信失敗: id=${reminder.id}, status=${res.status}`);
       }
