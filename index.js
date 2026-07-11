@@ -2,7 +2,7 @@ import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerAllTools } from "./tools/index.js";
-import db from "./database.js";
+import db from "./database.js"; // db = pg.Pool (Postgres接続プール)
 
 
 const app = express();
@@ -195,13 +195,19 @@ async function checkAndSendReminders() {
     return;
   }
 
-  const now = new Date().toISOString();
+  let due;
 
-  const due = db.prepare(`
-    SELECT id, user_id, message
-    FROM reminders
-    WHERE sent = 0 AND remind_at <= ?
-  `).all(now);
+  try {
+    const result = await db.query(`
+      SELECT id, user_id, message
+      FROM reminders
+      WHERE sent = false AND remind_at <= NOW()
+    `);
+    due = result.rows;
+  } catch (error) {
+    console.error("リマインダー確認クエリエラー:", error);
+    return;
+  }
 
   for (const reminder of due) {
 
@@ -220,7 +226,7 @@ async function checkAndSendReminders() {
       });
 
       if (res.ok) {
-        db.prepare("UPDATE reminders SET sent = 1 WHERE id = ?").run(reminder.id);
+        await db.query("UPDATE reminders SET sent = true WHERE id = $1", [reminder.id]);
         console.log(`リマインダー送信成功: id=${reminder.id}`);
       } else {
         console.error(`リマインダー送信失敗: id=${reminder.id}, status=${res.status}`);

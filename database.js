@@ -1,53 +1,54 @@
-import Database from "better-sqlite3";
+import pg from "pg";
 
+const { Pool } = pg;
 
-const db = new Database("./memory.db");
-
-
-console.error("✅ SQLite接続成功");
-
-
-// user_idごとに記憶を分離するため、(user_id, key)の複合主キーに変更。
-// 以前は key だけがUNIQUEだったため、複数クライアント/ユーザーが同じkey名を
-// 使うと記憶が混ざってしまう問題があった。
-//
-// 既存の memories テーブルが旧スキーマ(user_idカラムなし)の場合は
-// 作り直す(テスト運用中のため、既存データは一旦破棄する前提)。
-const existing = db
-  .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='memories'")
-  .get();
-
-if (existing) {
-  const columns = db.prepare("PRAGMA table_info(memories)").all();
-  const hasUserId = columns.some((col) => col.name === "user_id");
-
-  if (!hasUserId) {
-    console.error("⚠️ 旧スキーマのmemoriesテーブルを検出、作り直します");
-    db.exec("DROP TABLE memories");
+// Render Postgresの Internal Database URL を使う想定。
+// Renderの内部ネットワーク接続でもSSLハンドシェイクを求められることがあるため、
+// rejectUnauthorized: false で自己署名証明書を許容する
+// (Render管理下のDBなので中間者攻撃のリスクは実質無視できる)。
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
+});
+
+// プール全体で起きた予期しないエラー(接続断など)をログに残す。
+// これがないと、アイドル中のクライアントで起きたエラーが
+// uncaughtExceptionとしてプロセスごと落ちる原因になる。
+pool.on("error", (err) => {
+  console.error("PG POOL ERROR:", err);
+});
+
+async function initDb() {
+  // user_idごとに記憶を分離するため、(user_id, key)の複合主キーにする。
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS memories (
+      user_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT,
+      PRIMARY KEY (user_id, key)
+    )
+  `);
+
+  // リマインダー機能用。remind_at は TIMESTAMPTZ で保存し、
+  // sent=false のうち remind_at が現在時刻を過ぎたものをスケジューラーが定期的に拾って送信する。
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS reminders (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      remind_at TIMESTAMPTZ NOT NULL,
+      message TEXT NOT NULL,
+      sent BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  console.error("✅ Postgres接続・テーブル初期化 完了");
 }
 
-db.exec(`
-CREATE TABLE IF NOT EXISTS memories (
-    user_id TEXT NOT NULL,
-    key TEXT NOT NULL,
-    value TEXT,
-    PRIMARY KEY (user_id, key)
-)
-`);
+// トップレベルawait: 起動時に初期化が失敗したら、
+// 中途半端な状態で起動を続けさせず、ここで即座に落とす。
+await initDb();
 
-// リマインダー機能用。remind_at は ISO 8601 文字列(例: 2026-07-12T15:00:00+09:00)で保存し、
-// sent=0 のうち remind_at が現在時刻を過ぎたものをスケジューラーが定期的に拾って送信する。
-db.exec(`
-CREATE TABLE IF NOT EXISTS reminders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id TEXT NOT NULL,
-    remind_at TEXT NOT NULL,
-    message TEXT NOT NULL,
-    sent INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-`);
-
-
-export default db;
+export default pool;
