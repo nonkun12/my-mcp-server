@@ -52,7 +52,15 @@ async function initDb() {
     ADD COLUMN IF NOT EXISTS repeat TEXT NOT NULL DEFAULT 'none'
   `);
 
-
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
 
   // =========================
   // Notes
