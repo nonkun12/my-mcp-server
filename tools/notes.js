@@ -1,3 +1,4 @@
+import { z } from "zod";
 import pool from "../database.js";
 
 export function registerNoteTools(server) {
@@ -9,18 +10,9 @@ export function registerNoteTools(server) {
     "save_note",
     "ユーザーのメモを保存する",
     {
-      user_id: {
-        type: "string",
-        description: "LINEユーザーID"
-      },
-      title: {
-        type: "string",
-        description: "メモタイトル"
-      },
-      body: {
-        type: "string",
-        description: "メモ内容"
-      }
+      user_id: z.string().describe("LINEユーザーID"),
+      title: z.string().describe("メモタイトル"),
+      body: z.string().describe("メモ内容")
     },
     async ({ user_id, title, body }) => {
 
@@ -56,10 +48,7 @@ export function registerNoteTools(server) {
     "list_notes",
     "保存したメモ一覧を取得する",
     {
-      user_id: {
-        type: "string",
-        description: "LINEユーザーID"
-      }
+      user_id: z.string().describe("LINEユーザーID")
     },
     async ({ user_id }) => {
 
@@ -71,14 +60,11 @@ export function registerNoteTools(server) {
         ORDER BY id DESC
         LIMIT 20
         `,
-        [
-          user_id
-        ]
+        [user_id]
       );
 
 
       if (result.rows.length === 0) {
-
         return {
           content: [
             {
@@ -87,32 +73,28 @@ export function registerNoteTools(server) {
             }
           ]
         };
-
       }
 
 
-      const text = result.rows
-        .map(
-          n =>
+      const text = result.rows.map(
+        n =>
 `ID:${n.id}
 タイトル:${n.title}
 内容:${n.body}
 日時:${n.created_at}`
-        )
-        .join("\n\n");
+      ).join("\n\n");
 
 
       return {
         content:[
           {
             type:"text",
-            text:text
+            text
           }
         ]
       };
     }
   );
-
 
 
   // =========================
@@ -122,16 +104,10 @@ export function registerNoteTools(server) {
     "search_notes",
     "メモを検索する",
     {
-      user_id:{
-        type:"string",
-        description:"LINEユーザーID"
-      },
-      keyword:{
-        type:"string",
-        description:"検索文字"
-      }
+      user_id: z.string().describe("LINEユーザーID"),
+      keyword: z.string().describe("検索文字")
     },
-    async ({user_id, keyword})=>{
+    async ({ user_id, keyword }) => {
 
       const result = await pool.query(
         `
@@ -151,8 +127,7 @@ export function registerNoteTools(server) {
       );
 
 
-      if(result.rows.length===0){
-
+      if(result.rows.length === 0){
         return {
           content:[
             {
@@ -161,25 +136,22 @@ export function registerNoteTools(server) {
             }
           ]
         };
-
       }
 
 
-      const text=result.rows
-      .map(
+      const text=result.rows.map(
         n =>
 `ID:${n.id}
 タイトル:${n.title}
 内容:${n.body}`
-      )
-      .join("\n\n");
+      ).join("\n\n");
 
 
       return {
         content:[
           {
             type:"text",
-            text:text
+            text
           }
         ]
       };
