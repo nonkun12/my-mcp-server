@@ -1,14 +1,15 @@
 import { registerMemoryTools } from "./memory.js";
 import { registerReminderTools } from "./reminder.js";
+import { registerNoteTools } from "./notes.js";
 
-// 新しいツールを追加するときはここに1行足す。
-// 例: import { registerCalendarTools } from "./calendar.js";
+// MCPツール登録一覧
+// 新しいツールを追加するときはここへ追加する
 const TOOL_REGISTRARS = [
   registerMemoryTools,
-  registerReminderTools
-  // registerCalendarTools,
-  // registerSearchTools,
+  registerReminderTools,
+  registerNoteTools
 ];
+
 
 export function registerAllTools(server) {
   for (const register of TOOL_REGISTRARS) {
