@@ -4,11 +4,9 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { registerAllTools } from "./tools/index.js";
 import db from "./database.js"; // db = pg.Pool (Postgres接続プール)
 
-
 const app = express();
 
 app.use(express.json());
-
 
 // =================================
 // 認証
@@ -20,7 +18,6 @@ app.use(express.json());
 const MCP_API_KEY = process.env.MCP_API_KEY;
 
 function requireApiKey(req, res, next) {
-
   if (!MCP_API_KEY) {
     // 環境変数が未設定の場合は起動時のミスなので、
     // 誰でも通してしまうより明示的にエラーにする
@@ -29,9 +26,9 @@ function requireApiKey(req, res, next) {
       jsonrpc: "2.0",
       error: {
         code: -32000,
-        message: "Server misconfigured: MCP_API_KEY not set"
+        message: "Server misconfigured: MCP_API_KEY not set",
       },
-      id: null
+      id: null,
     });
   }
 
@@ -42,73 +39,52 @@ function requireApiKey(req, res, next) {
       jsonrpc: "2.0",
       error: {
         code: -32001,
-        message: "Unauthorized: invalid or missing x-api-key"
+        message: "Unauthorized: invalid or missing x-api-key",
       },
-      id: null
+      id: null,
     });
   }
 
   next();
-
 }
-
 
 // =================================
 // Health Check(認証不要・Render監視用)
 // =================================
 
 app.get("/health", (req, res) => {
-
   res.json({
     ok: true,
-    service: "memory-mcp-server"
+    service: "memory-mcp-server",
   });
-
 });
-
-
-
 
 // =================================
 // MCP Server 作成
 // =================================
 
 function createMcpServer() {
-
-
   const server = new McpServer({
-
     name: "memory-mcp-server",
 
-    version: "1.0.0"
-
+    version: "1.0.0",
   });
 
   registerAllTools(server);
 
-
-
-
   return server;
-
 }
-
-
 
 // =================================
 // MCP Endpoint
 // =================================
 
 app.post("/mcp", requireApiKey, async (req, res) => {
-
   const server = createMcpServer();
 
-  const transport =
-    new StreamableHTTPServerTransport({
-
-      sessionIdGenerator: undefined
-
-    });
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
 
   // レスポンス終了時にserver/transportを必ず破棄する。
   // これがないと、リクエストのたびにインスタンスが残り続け、
@@ -120,21 +96,16 @@ app.post("/mcp", requireApiKey, async (req, res) => {
   });
 
   try {
-
     await server.connect(transport);
 
     await transport.handleRequest(
-
       req,
 
       res,
 
-      req.body
-
+      req.body,
     );
-
   } catch (error) {
-
     console.error("MCP REQUEST ERROR:", error);
 
     if (!res.headersSent) {
@@ -142,14 +113,12 @@ app.post("/mcp", requireApiKey, async (req, res) => {
         jsonrpc: "2.0",
         error: {
           code: -32603,
-          message: "Internal server error"
+          message: "Internal server error",
         },
-        id: null
+        id: null,
       });
     }
-
   }
-
 });
 
 // ステートレスモードではGET/DELETEは使わないため、
@@ -159,9 +128,9 @@ app.get("/mcp", requireApiKey, (req, res) => {
     jsonrpc: "2.0",
     error: {
       code: -32000,
-      message: "Method not allowed. This server is stateless; use POST."
+      message: "Method not allowed. This server is stateless; use POST.",
     },
-    id: null
+    id: null,
   });
 });
 
@@ -170,14 +139,11 @@ app.delete("/mcp", requireApiKey, (req, res) => {
     jsonrpc: "2.0",
     error: {
       code: -32000,
-      message: "Method not allowed. This server is stateless; use POST."
+      message: "Method not allowed. This server is stateless; use POST.",
     },
-    id: null
+    id: null,
   });
 });
-
-
-
 
 // =================================
 // リマインダー・スケジューラー
@@ -189,7 +155,6 @@ const LINE_BOT_PUSH_URL = process.env.LINE_BOT_PUSH_URL;
 const INTERNAL_PUSH_KEY = process.env.INTERNAL_PUSH_KEY;
 
 async function checkAndSendReminders() {
-
   if (!LINE_BOT_PUSH_URL || !INTERNAL_PUSH_KEY) {
     // 未設定ならスケジューラー自体を無効化(起動時に一度だけ警告)
     return;
@@ -210,19 +175,17 @@ async function checkAndSendReminders() {
   }
 
   for (const reminder of due) {
-
     try {
-
       const res = await fetch(LINE_BOT_PUSH_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-internal-key": INTERNAL_PUSH_KEY
+          "x-internal-key": INTERNAL_PUSH_KEY,
         },
         body: JSON.stringify({
           user_id: reminder.user_id,
-          message: reminder.message
-        })
+          message: reminder.message,
+        }),
       });
 
       if (res.ok) {
@@ -232,32 +195,40 @@ async function checkAndSendReminders() {
           // 再び拾われ、毎日繰り返し送信される。
           await db.query(
             "UPDATE reminders SET remind_at = remind_at + interval '1 day' WHERE id = $1",
-            [reminder.id]
+            [reminder.id],
           );
-          console.log(`リマインダー送信成功(繰り返し・次回へ更新): id=${reminder.id}`);
+
+          console.log(
+            `リマインダー送信成功(繰り返し・次回へ更新): id=${reminder.id}`,
+          );
         } else {
-          await db.query("UPDATE reminders SET sent = true WHERE id = $1", [reminder.id]);
+          await db.query("UPDATE reminders SET sent = true WHERE id = $1", [
+            reminder.id,
+          ]);
+
           console.log(`リマインダー送信成功: id=${reminder.id}`);
         }
       } else {
-        console.error(`リマインダー送信失敗: id=${reminder.id}, status=${res.status}`);
-      }
+        const body = await res.text();
 
+        console.error(
+          `リマインダー送信失敗: id=${reminder.id}, status=${res.status}, body=${body}`,
+        );
+      }
     } catch (error) {
       console.error(`リマインダー送信エラー: id=${reminder.id}`, error);
     }
-
   }
-
 }
 
 if (LINE_BOT_PUSH_URL && INTERNAL_PUSH_KEY) {
   setInterval(checkAndSendReminders, 60 * 1000);
   console.log("リマインダー・スケジューラーを起動しました(60秒間隔)");
 } else {
-  console.warn("LINE_BOT_PUSH_URL または INTERNAL_PUSH_KEY が未設定のため、リマインダー送信は無効です");
+  console.warn(
+    "LINE_BOT_PUSH_URL または INTERNAL_PUSH_KEY が未設定のため、リマインダー送信は無効です",
+  );
 }
-
 
 // =================================
 // 予期しないエラーのログ(原因究明用)
@@ -270,19 +241,12 @@ process.on("unhandledRejection", (reason) => {
   console.error("UNHANDLED REJECTION:", reason);
 });
 
-
 // =================================
 // Server Start
 // =================================
 
-const PORT =
-  process.env.PORT || 3000;
-
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-
-  console.log(
-    `Memory MCP Server running on port ${PORT}`
-  );
-
+  console.log(`Memory MCP Server running on port ${PORT}`);
 });
