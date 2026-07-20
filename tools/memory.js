@@ -109,3 +109,47 @@ export function registerMemoryTools(server) {
   );
 
 }
+
+  server.registerTool(
+    "delete_memory",
+    {
+      title: "Delete Memory",
+      description: "特定ユーザーの記憶を削除します",
+      inputSchema: {
+        user_id: z.string(),
+        key: z.string()
+      }
+    },
+
+    async ({ user_id, key }) => {
+      try {
+        const result = await pool.query(
+          `
+          DELETE FROM memories
+          WHERE user_id = $1 AND key = $2
+          `,
+          [user_id, key]
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${result.rowCount}件削除しました`
+            }
+          ]
+        };
+
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "削除エラー: " + error.message
+            }
+          ]
+        };
+      }
+    }
+  );
+
