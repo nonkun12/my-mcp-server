@@ -80,6 +80,9 @@ function createMcpServer() {
 // =================================
 
 app.post("/mcp", requireApiKey, async (req, res) => {
+  console.log("===== MCP REQUEST =====");
+  console.log(JSON.stringify(req.body, null, 2));
+
   const server = createMcpServer();
 
   const transport = new StreamableHTTPServerTransport({
