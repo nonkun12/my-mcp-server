@@ -56,7 +56,7 @@ export function registerNoteTools(server) {
 
       const result = await pool.query(
         `
-        SELECT id, title, body, created_at
+        SELECT id, title, body, category, created_at
         FROM notes
         WHERE user_id=$1
         ORDER BY id DESC
@@ -83,6 +83,7 @@ export function registerNoteTools(server) {
 `ID:${n.id}
 タイトル:${n.title}
 内容:${n.body}
+カテゴリ:${n.category}
 日時:${n.created_at}`
       ).join("\n\n");
 
