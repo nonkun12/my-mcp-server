@@ -211,32 +211,3 @@ export function registerNoteTools(server) {
 
 }
 
-// =========================
-// 全メモ削除
-// =========================
-server.tool(
-  "delete_all_notes",
-  "ユーザーのメモを全部削除する",
-  {
-    user_id: z.string().describe("LINEユーザーID")
-  },
-  async ({ user_id }) => {
-
-    const result = await pool.query(
-      `
-      DELETE FROM notes
-      WHERE user_id=$1
-      `,
-      [user_id]
-    );
-
-    return {
-      content:[
-        {
-          type:"text",
-          text:`${result.rowCount}件削除しました`
-        }
-      ]
-    };
-  }
-);
