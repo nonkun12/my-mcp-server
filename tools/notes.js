@@ -173,6 +173,19 @@ export function registerNoteTools(server) {
     },
     async ({ user_id, id }) => {
 
+      console.log("DELETE CHECK:", id, user_id);
+
+      const check = await pool.query(
+        `
+        SELECT id, user_id, title
+        FROM notes
+        WHERE id=$1
+        `,
+        [id]
+      );
+
+      console.log("DELETE TARGET:", check.rows);
+
       const result = await pool.query(
         `
         DELETE FROM notes
