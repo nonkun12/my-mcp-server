@@ -159,4 +159,41 @@ export function registerNoteTools(server) {
     }
   );
 
+
+
+  // =========================
+  // メモ削除
+  // =========================
+  server.tool(
+    "delete_note",
+    "指定したIDのメモを削除する",
+    {
+      user_id: z.string().describe("LINEユーザーID"),
+      id: z.string().describe("削除するメモID")
+    },
+    async ({ user_id, id }) => {
+
+      const result = await pool.query(
+        `
+        DELETE FROM notes
+        WHERE id=$1
+        AND user_id=$2
+        `,
+        [
+          id,
+          user_id
+        ]
+      );
+
+      return {
+        content:[
+          {
+            type:"text",
+            text:`${result.rowCount}件削除しました`
+          }
+        ]
+      };
+    }
+  );
+
 }
