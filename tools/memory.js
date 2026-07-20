@@ -108,7 +108,7 @@ export function registerMemoryTools(server) {
     }
   );
 
-}
+
 
   server.registerTool(
     "delete_memory",
@@ -153,3 +153,4 @@ export function registerMemoryTools(server) {
     }
   );
 
+}
