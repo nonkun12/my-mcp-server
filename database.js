@@ -62,21 +62,10 @@ async function initDb() {
     )
   `);
 
-  // =========================
-  // Notes
-  // LINEメモ保存用
-  // =========================
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS notes (
-      id SERIAL PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      title TEXT NOT NULL,
-      body TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
+    ALTER TABLE notes
+    ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '一般'
   `);
-
-
 
   console.error("✅ PostgreSQL接続・テーブル初期化 完了");
 }

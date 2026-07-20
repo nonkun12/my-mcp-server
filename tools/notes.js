@@ -12,20 +12,22 @@ export function registerNoteTools(server) {
     {
       user_id: z.string().describe("LINEユーザーID"),
       title: z.string().describe("メモタイトル"),
-      body: z.string().describe("メモ内容")
+      body: z.string().describe("メモ内容"),
+      category: z.string().optional().describe("メモカテゴリ")
     },
-    async ({ user_id, title, body }) => {
+    async ({ user_id, title, body, category = "一般" }) => {
 
       await pool.query(
         `
         INSERT INTO notes
-        (user_id, title, body)
-        VALUES ($1, $2, $3)
+        (user_id, title, body, category)
+        VALUES ($1, $2, $3, $4)
         `,
         [
           user_id,
           title,
-          body
+          body,
+          category
         ]
       );
 
