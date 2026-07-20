@@ -15,6 +15,15 @@ export function registerSaveNoteTool(server) {
       }
     },
     async ({ user_id, title, body, category = "一般" }) => {
+
+      console.log("===== SAVE_NOTE TOOL CALLED =====");
+      console.log({
+        user_id,
+        title,
+        body,
+        category
+      });
+
       try {
         console.log("SAVE NOTE:", {
           user_id,
