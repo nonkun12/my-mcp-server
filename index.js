@@ -230,6 +230,54 @@ if (LINE_BOT_PUSH_URL && INTERNAL_PUSH_KEY) {
   );
 }
 
+
+
+// =================================
+// AI開発報告送信
+// =================================
+// line-bot側の /internal/ai-report を呼び出す
+// Groq処理とLINE送信はline-bot側で担当
+// =================================
+
+const LINE_BOT_AI_REPORT_URL = process.env.LINE_BOT_AI_REPORT_URL;
+const REPORT_USER_ID = process.env.REPORT_USER_ID;
+
+async function sendDailyAIReport() {
+
+  if (!LINE_BOT_AI_REPORT_URL || !INTERNAL_PUSH_KEY || !REPORT_USER_ID) {
+    console.warn("AI report設定不足");
+    return;
+  }
+
+  try {
+
+    const res = await fetch(
+      LINE_BOT_AI_REPORT_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-key": INTERNAL_PUSH_KEY
+        },
+        body: JSON.stringify({
+          user_id: REPORT_USER_ID,
+          prompt:
+            "昨日のAI開発状況を確認して、GitHub変更やメモ内容をもとに簡潔な開発報告を作成してください。"
+        })
+      }
+    );
+
+    console.log(
+      "AI REPORT RESULT:",
+      await res.text()
+    );
+
+  } catch(error) {
+    console.error("AI REPORT ERROR:", error);
+  }
+}
+
+
 // =================================
 // 予期しないエラーのログ(原因究明用)
 // =================================
