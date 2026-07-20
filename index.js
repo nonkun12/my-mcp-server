@@ -101,13 +101,15 @@ app.post("/mcp", requireApiKey, async (req, res) => {
   try {
     await server.connect(transport);
 
+    console.log("===== BEFORE HANDLE REQUEST =====");
+
     await transport.handleRequest(
       req,
-
       res,
-
       req.body,
     );
+
+    console.log("===== AFTER HANDLE REQUEST =====");
   } catch (error) {
     console.error("MCP REQUEST ERROR:", error);
 
