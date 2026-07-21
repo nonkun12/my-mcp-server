@@ -153,4 +153,49 @@ export function registerMemoryTools(server) {
     }
   );
 
+
+  server.registerTool(
+    "get_all_memory",
+    {
+      title: "Get All Memory",
+      description: "ユーザーの全記憶を取得します",
+      inputSchema: {
+        user_id: z.string()
+      }
+    },
+
+    async ({ user_id }) => {
+      try {
+        const result = await pool.query(
+          `
+          SELECT key, value
+          FROM memories
+          WHERE user_id = $1
+          ORDER BY key
+          `,
+          [user_id]
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result.rows)
+            }
+          ]
+        };
+
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "取得エラー: " + error.message
+            }
+          ]
+        };
+      }
+    }
+  );
+
 }
