@@ -13,7 +13,7 @@ export function registerListNotesTool(server) {
       }
     },
 
-    async ({ user_id }) {
+    async ({ user_id }) => {
 
       console.log("===== LIST NOTES TOOL CALLED =====");
       console.log({ user_id });
