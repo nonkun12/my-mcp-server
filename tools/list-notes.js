@@ -13,7 +13,10 @@ export function registerListNotesTool(server) {
       }
     },
 
-    async ({ user_id }) => {
+    async ({ user_id }) {
+
+      console.log("===== LIST NOTES TOOL CALLED =====");
+      console.log({ user_id });
 
       try {
 
@@ -28,6 +31,8 @@ export function registerListNotesTool(server) {
           [user_id]
         );
 
+
+        console.log("LIST RESULT:", result.rows);
 
         if (result.rows.length === 0) {
           return {
