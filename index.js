@@ -302,4 +302,8 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Memory MCP Server running on port ${PORT}`);
+
+  setTimeout(() => {
+    sendDailyAIReport();
+  }, 10000);
 });
