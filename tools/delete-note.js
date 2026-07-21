@@ -9,7 +9,7 @@ export function registerDeleteNoteTool(server) {
       description: "指定したIDのメモを削除します",
       inputSchema: {
         user_id: z.string().describe("LINEユーザーID"),
-        id: z.number().describe("削除するメモのID")
+        id: z.coerce.number().describe("削除するメモのID")
       }
     },
     async ({ user_id, id }) => {
