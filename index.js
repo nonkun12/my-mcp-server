@@ -112,6 +112,8 @@ app.post("/mcp", requireApiKey, async (req, res) => {
     );
 
     console.log("===== AFTER HANDLE REQUEST =====");
+    console.log("HEADERS SENT:", res.headersSent);
+    console.log("RES FINISHED:", res.finished);
   } catch (error) {
     console.error("MCP REQUEST ERROR:", error);
 
