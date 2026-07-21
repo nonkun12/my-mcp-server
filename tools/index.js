@@ -1,6 +1,7 @@
 import { registerMemoryTools } from "./memory.js";
 import { registerReminderTools } from "./reminder.js";
 import { registerSaveNoteTool } from "./save-note.js";
+import { registerSearchNotesTool } from "./search-notes.js";
 import { registerListNotesTool } from "./list-notes.js";
 
 
@@ -8,6 +9,7 @@ const TOOL_REGISTRARS = [
   registerMemoryTools,
   registerReminderTools,
   registerSaveNoteTool,
+  registerSearchNotesTool,
   registerListNotesTool
 ];
 
