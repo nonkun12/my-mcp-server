@@ -12,7 +12,9 @@ const TOOL_REGISTRARS = [
   registerReminderTools,
   registerSaveNoteTool,
   registerSearchNotesTool,
-  registerListNotesTool
+  registerListNotesTool,
+  registerDeleteNoteTool,
+  registerDeleteAllNotesTool
 ];
 
 
