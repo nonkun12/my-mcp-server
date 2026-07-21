@@ -166,6 +166,8 @@ export function registerMemoryTools(server) {
 
     async ({ user_id }) => {
       try {
+        console.log("GET_ALL_MEMORY START:", user_id);
+
         const result = await pool.query(
           `
           SELECT key, value
@@ -175,6 +177,8 @@ export function registerMemoryTools(server) {
           `,
           [user_id]
         );
+
+        console.log("GET_ALL_MEMORY RESULT:", result.rows);
 
         return {
           content: [
