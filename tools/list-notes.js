@@ -2,7 +2,6 @@ import { z } from "zod";
 import db from "../database.js";
 
 export function registerListNotesTool(server) {
-
   server.registerTool(
     "list_notes",
     {
@@ -12,13 +11,10 @@ export function registerListNotesTool(server) {
         user_id: z.string().describe("LINEユーザーID")
       }
     },
-
     async ({ user_id }) => {
-
-      console.log("===== LIST NOTES TOOL CALLED =====");
-      console.log({ user_id });
-
       try {
+        console.log("===== LIST NOTES TOOL CALLED =====");
+        console.log({ user_id });
 
         const result = await db.query(
           `
@@ -26,54 +22,33 @@ export function registerListNotesTool(server) {
           FROM notes
           WHERE user_id = $1
           ORDER BY created_at DESC
-          LIMIT 10
           `,
           [user_id]
         );
 
-
         console.log("LIST RESULT:", result.rows);
 
-        if (result.rows.length === 0) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: "メモはありません。"
-              }
-            ]
-          };
-        }
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result.rows, null, 2)
+            }
+          ]
+        };
 
-
-        const text = result.rows.map((note, index) => {
-          return `${index + 1}. ${note.title}\n${note.body}\n${note.created_at}`;
-        }).join("\n\n");
-
+      } catch (error) {
+        console.error("LIST NOTES ERROR:", error);
 
         return {
           content: [
             {
               type: "text",
-              text
+              text: "一覧取得エラー: " + error.message
             }
           ]
         };
-
-
-      } catch(error) {
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: "取得エラー: " + error.message
-            }
-          ]
-        };
-
       }
-
     }
   );
 }
