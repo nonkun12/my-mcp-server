@@ -1,13 +1,21 @@
 import { registerMemoryTools } from "./memory.js";
 import { registerReminderTools } from "./reminder.js";
-import { registerNoteTools } from "./notes.js";
+import { registerSaveNoteTool } from "./save-note.js";
+import { registerSearchNotesTool } from "./search-notes.js";
+import { registerListNotesTool } from "./list-notes.js";
+import { registerDeleteNoteTool } from "./delete-note.js";
+import { registerDeleteAllNotesTool } from "./delete-all-notes.js";
 
 // MCPツール登録一覧
 // 新しいツールを追加するときはここへ追加する
 const TOOL_REGISTRARS = [
   registerMemoryTools,
   registerReminderTools,
-  registerNoteTools
+  registerSaveNoteTool,
+  registerSearchNotesTool,
+  registerListNotesTool,
+  registerDeleteNoteTool,
+  registerDeleteAllNotesTool
 ];
 
 
