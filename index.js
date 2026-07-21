@@ -88,6 +88,7 @@ app.post("/mcp", requireApiKey, async (req, res) => {
 
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
+    enableJsonResponse: true,
   });
 
   // レスポンス終了時にserver/transportを必ず破棄する。
@@ -304,4 +305,16 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Memory MCP Server running on port ${PORT}`);
 
+  cron.schedule(
+    "0 7 * * *",
+    () => {
+      console.log("AI REPORT SCHEDULE START");
+      sendDailyAIReport();
+    },
+    {
+      timezone: "Asia/Tokyo"
+    }
+  );
+
+  console.log("AI report scheduler started");
 });
