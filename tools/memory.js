@@ -155,6 +155,49 @@ export function registerMemoryTools(server) {
 
 
   server.registerTool(
+    "delete_all_memory",
+    {
+      title: "Delete All Memory",
+      description: "特定ユーザーの記憶を全て削除します",
+      inputSchema: {
+        user_id: z.string()
+      }
+    },
+
+    async ({ user_id }) => {
+      try {
+        const result = await pool.query(
+          `
+          DELETE FROM memories
+          WHERE user_id = $1
+          `,
+          [user_id]
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${result.rowCount}件の記憶を削除しました`
+            }
+          ]
+        };
+
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "削除エラー: " + error.message
+            }
+          ]
+        };
+      }
+    }
+  );
+
+
+  server.registerTool(
     "get_all_memory",
     {
       title: "Get All Memory",
