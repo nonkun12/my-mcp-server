@@ -67,7 +67,7 @@ export function registerReminderTools(server) {
           content: [
             {
               type: "text",
-              text: `リマインダーを登録しました: ${parsed.toISOString()} に「${message}」${repeatNote}`
+              text: `✅ ${parsed.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" })} に「${message}」を通知します${repeatNote}`
             }
           ]
         };
