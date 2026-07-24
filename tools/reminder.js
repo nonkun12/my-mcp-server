@@ -177,6 +177,8 @@ export function registerReminderTools(server) {
           [id, user_id]
         );
 
+        console.error("DELETE ROW COUNT:", result.rowCount);
+
         if (result.rowCount === 0) {
           return {
             content: [
