@@ -11,6 +11,9 @@ import pool from "../database.js";
 // ユーザーが「今何がセットされてる?」と聞いたときに使う。
 //
 // cancel_reminder: list_remindersで見せたidを指定して、そのリマインダーを削除する。
+//
+// get_today_schedule: AI秘書の「今日の予定確認」専用。sent=true/falseの両方を含め、
+// JST基準で「今日」の分だけを取得する(list_remindersとは用途が異なるため分離)。
 export function registerReminderTools(server) {
 
   server.registerTool(
@@ -205,6 +208,67 @@ export function registerReminderTools(server) {
             {
               type: "text",
               text: "キャンセルエラー: " + error.message
+            }
+          ]
+        };
+      }
+    }
+  );
+
+
+  server.registerTool(
+    "get_today_schedule",
+    {
+      title: "Get Today Schedule",
+      description:
+        "そのユーザーの「今日(JST基準)」分の予定を、送信済み(sent=true)・未送信(sent=false)の" +
+        "両方を含めて時刻順で返します。list_remindersとは異なり通知スケジューラー用ではなく、" +
+        "AI秘書が「今日の予定/リマインダーを教えて」と聞かれたときの確認用に使ってください。" +
+        "今日より前の日付のものは含まれません。",
+      inputSchema: {
+        user_id: z.string().describe("対象ユーザーのID")
+      }
+    },
+
+    async ({ user_id }) => {
+      console.error(`[TOOL CALL] get_today_schedule user_id=${user_id}`);
+
+      try {
+        const result = await pool.query(
+          `
+          SELECT id, remind_at, message, repeat, sent
+          FROM reminders
+          WHERE user_id = $1
+            AND (remind_at AT TIME ZONE 'Asia/Tokyo')::date
+                = (NOW() AT TIME ZONE 'Asia/Tokyo')::date
+          ORDER BY remind_at ASC
+          `,
+          [user_id]
+        );
+
+        const rows = result.rows.map((r) => ({
+          id: r.id,
+          remind_at: r.remind_at.toISOString(),
+          message: r.message,
+          repeat: r.repeat,
+          sent: r.sent
+        }));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(rows)
+            }
+          ]
+        };
+
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "取得エラー: " + error.message
             }
           ]
         };
