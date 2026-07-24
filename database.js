@@ -31,6 +31,27 @@ async function initDb() {
   `);
 
 
+  await pool.query(`
+    ALTER TABLE memories
+    ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general'
+  `);
+
+  await pool.query(`
+    ALTER TABLE memories
+    ADD COLUMN IF NOT EXISTS importance TEXT DEFAULT 'normal'
+  `);
+
+  await pool.query(`
+    ALTER TABLE memories
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()
+  `);
+
+  await pool.query(`
+    ALTER TABLE memories
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
+  `);
+
+
   // =========================
   // Reminder
   // =========================
