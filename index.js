@@ -184,6 +184,22 @@ async function checkAndSendReminders() {
   }
 
   for (const reminder of due) {
+
+    // 通知直前にキャンセル済みか再確認
+    const check = await db.query(
+      `
+      SELECT id
+      FROM reminders
+      WHERE id = $1 AND sent = false
+      `,
+      [reminder.id],
+    );
+
+    if (check.rowCount === 0) {
+      console.log(`[SKIP] reminder id=${reminder.id} already cancelled`);
+      continue;
+    }
+
     try {
       const res = await fetch(LINE_BOT_PUSH_URL, {
         method: "POST",
