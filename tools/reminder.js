@@ -15,6 +15,7 @@ import pool from "../database.js";
 // get_today_schedule: AI秘書の「今日の予定確認」専用。sent=true/falseの両方を含め、
 // JST基準で「今日」の分だけを取得する(list_remindersとは用途が異なるため分離)。
 export function registerReminderTools(server) {
+  console.log("[LOG] registerReminderTools called");
 
   server.registerTool(
     "set_reminder",
@@ -37,6 +38,7 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id, remind_at, message, repeat }) => {
+      console.log(`[LOG] tool set_reminder invoked: user_id=${user_id}`);
       // 診断用: 重複呼び出しの有無を確認するため、呼ばれるたびに記録する
       console.error(`[TOOL CALL] set_reminder user_id=${user_id} remind_at=${remind_at} message=${message} repeat=${repeat}`);
 
@@ -102,6 +104,7 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id }) => {
+      console.log(`[LOG] tool list_reminders invoked: user_id=${user_id}`);
       console.error(`[TOOL CALL] list_reminders user_id=${user_id}`);
 
       try {
@@ -169,6 +172,7 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id, id }) => {
+      console.log(`[LOG] tool cancel_reminder invoked: user_id=${user_id}, id=${id}`);
       console.error(`[TOOL CALL] cancel_reminder user_id=${user_id} id=${id}`);
 
       try {
@@ -231,6 +235,7 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id }) => {
+      console.log(`[LOG] tool get_today_schedule invoked: user_id=${user_id}`);
       console.error(`[TOOL CALL] get_today_schedule user_id=${user_id}`);
 
       try {
