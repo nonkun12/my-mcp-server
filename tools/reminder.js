@@ -108,6 +108,8 @@ export function registerReminderTools(server) {
       console.error(`[TOOL CALL] list_reminders user_id=${user_id}`);
 
       try {
+        console.log("DEBUG BEFORE get_today_schedule SQL");
+
         const result = await pool.query(
           `
           SELECT id, remind_at, message, repeat
@@ -250,6 +252,10 @@ export function registerReminderTools(server) {
           `,
           [user_id]
         );
+
+        console.log("DEBUG AFTER get_today_schedule SQL");
+        console.log("DEBUG ROW COUNT", result.rowCount);
+        console.log("DEBUG ROWS", result.rows);
 
         const rows = result.rows.map((r) => ({
           id: r.id,
