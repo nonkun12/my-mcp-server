@@ -259,7 +259,7 @@ export function registerReminderTools(server) {
 
         const rows = result.rows.map((r) => ({
           id: r.id,
-          remind_at: r.remind_at.toISOString(),
+          remind_at: r.remind_at.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }),
           message: r.message,
           repeat: r.repeat,
           sent: r.sent
