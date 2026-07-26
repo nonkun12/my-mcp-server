@@ -133,7 +133,7 @@ export function registerReminderTools(server) {
 
         const lines = result.rows.map((r) => {
           const repeatNote = r.repeat === "daily" ? "(毎日繰り返し)" : "";
-          return `id=${r.id}: ${r.remind_at.toISOString()} に「${r.message}」${repeatNote}`;
+          return `id=${r.id}: ${r.remind_at.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })} に「${r.message}」${repeatNote}`;
         });
 
         return {
