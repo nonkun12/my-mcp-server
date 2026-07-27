@@ -18,20 +18,33 @@ export function registerMemoryTools(server) {
       inputSchema: {
         user_id: z.string().describe("記憶の持ち主を識別するID(呼び出し元クライアントが指定)"),
         key: z.string(),
-        value: z.string()
+        value: z.string(),
+        category: z.string().optional().default("general"),
+        importance: z.string().optional().default("normal")
       }
     },
 
-    async ({ user_id, key, value }) => {
+    async ({ user_id, key, value, category, importance }) => {
       try {
         await pool.query(
           `
-          INSERT INTO memories(user_id, key, value)
-          VALUES ($1, $2, $3)
+          INSERT INTO memories(
+            user_id,
+            key,
+            value,
+            category,
+            importance,
+            updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, NOW())
           ON CONFLICT (user_id, key)
-          DO UPDATE SET value = EXCLUDED.value
+          DO UPDATE SET
+            value = EXCLUDED.value,
+            category = EXCLUDED.category,
+            importance = EXCLUDED.importance,
+            updated_at = NOW()
           `,
-          [user_id, key, value]
+          [user_id, key, value, category, importance]
         );
 
         return {
@@ -71,7 +84,17 @@ export function registerMemoryTools(server) {
     async ({ user_id, key }) => {
       try {
         const result = await pool.query(
-          `SELECT value FROM memories WHERE user_id = $1 AND key = $2`,
+          `
+          SELECT
+            key,
+            value,
+            category,
+            importance,
+            created_at,
+            updated_at
+          FROM memories
+          WHERE user_id = $1 AND key = $2
+          `,
           [user_id, key]
         );
 
@@ -80,7 +103,7 @@ export function registerMemoryTools(server) {
             content: [
               {
                 type: "text",
-                text: result.rows[0].value
+                text: JSON.stringify(result.rows[0])
               }
             ]
           };
@@ -213,7 +236,13 @@ export function registerMemoryTools(server) {
 
         const result = await pool.query(
           `
-          SELECT key, value
+          SELECT
+            key,
+            value,
+            category,
+            importance,
+            created_at,
+            updated_at
           FROM memories
           WHERE user_id = $1
           ORDER BY key
