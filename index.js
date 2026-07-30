@@ -185,6 +185,10 @@ async function checkAndSendReminders() {
 
   for (const reminder of due) {
 
+    console.log(`[TEST] LINE送信停止中 reminder id=${reminder.id}`);
+    continue;
+
+
     // 通知直前にキャンセル済みか再確認
     const check = await db.query(
       `
