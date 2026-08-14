@@ -327,16 +327,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Memory MCP Server running on port ${PORT}`);
 
-  cron.schedule(
-    "0 7 * * *",
-    () => {
-      console.log("AI REPORT SCHEDULE START");
-      sendDailyAIReport();
-    },
-    {
-      timezone: "Asia/Tokyo"
-    }
-  );
-
-  console.log("AI report scheduler started");
+  console.log("AI report scheduler disabled");
 });
