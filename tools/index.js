@@ -5,7 +5,7 @@ import { registerSearchNotesTool } from "./search-notes.js";
 import { registerListNotesTool } from "./list-notes.js";
 import { registerDeleteNoteTool } from "./delete-note.js";
 import { registerDeleteAllNotesTool } from "./delete-all-notes.js";
-
+import { registerAdminListNotesTool } from "./admin-list-notes.js";
 
 const TOOL_REGISTRARS = [
   registerMemoryTools,
@@ -14,14 +14,12 @@ const TOOL_REGISTRARS = [
   registerSearchNotesTool,
   registerListNotesTool,
   registerDeleteNoteTool,
-  registerDeleteAllNotesTool
+  registerDeleteAllNotesTool,
+  registerAdminListNotesTool
 ];
 
-
 export function registerAllTools(server) {
-
   for (const register of TOOL_REGISTRARS) {
     register(server);
   }
-
 }
