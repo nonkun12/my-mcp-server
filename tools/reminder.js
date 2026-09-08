@@ -39,7 +39,6 @@ export function registerReminderTools(server) {
 
     async ({ user_id, remind_at, message, repeat }) => {
       console.log(`[LOG] tool set_reminder invoked: user_id=${user_id}`);
-      // 診断用: 重複呼び出しの有無を確認するため、呼ばれるたびに記録する
       console.error(`[TOOL CALL] set_reminder user_id=${user_id} remind_at=${remind_at} message=${message} repeat=${repeat}`);
 
       const repeatValue = repeat === "daily" ? "daily" : "none";
@@ -96,8 +95,9 @@ export function registerReminderTools(server) {
     {
       title: "List Reminders",
       description:
-        "そのユーザーの、まだ送信されていない(予定されている)リマインダーを一覧で返します。" +
-        "ユーザーが「今何がセットされてる?」「リマインダー一覧」のように聞いてきたときに使ってください。",
+        "そのユーザーの、まだ送信されていない(予定されている)リマインダー一覧を返します。" +
+        "過去日時の単発リマインダーは一覧から除外します。" +
+        "ユーザーが「今何がセットされてる?」「リマインダー一覧」のように聞いてきたときに使います。",
       inputSchema: {
         user_id: z.string().describe("対象ユーザーのID")
       }
@@ -108,13 +108,13 @@ export function registerReminderTools(server) {
       console.error(`[TOOL CALL] list_reminders user_id=${user_id}`);
 
       try {
-        console.log("DEBUG BEFORE get_today_schedule SQL");
-
         const result = await pool.query(
           `
           SELECT id, remind_at, message, repeat
           FROM reminders
-          WHERE user_id = $1 AND sent = false
+          WHERE user_id = $1
+            AND sent = false
+            AND remind_at > NOW()
           ORDER BY remind_at ASC
           `,
           [user_id]
@@ -252,10 +252,6 @@ export function registerReminderTools(server) {
           `,
           [user_id]
         );
-
-        console.log("DEBUG AFTER get_today_schedule SQL");
-        console.log("DEBUG ROW COUNT", result.rowCount);
-        console.log("DEBUG ROWS", result.rows);
 
         const rows = result.rows.map((r) => ({
           id: r.id,
