@@ -84,7 +84,6 @@ export function registerNoteTools(server) {
 タイトル:${n.title}
 内容:${n.body}
 カテゴリ:${n.category}
-カテゴリ:${n.category}
 日時:${n.created_at}`
       ).join("\n\n");
 
@@ -248,4 +247,3 @@ export function registerNoteTools(server) {
   );
 
 }
-
