@@ -1,5 +1,14 @@
+import crypto from "node:crypto";
 import { z } from "zod";
 import db from "../database.js";
+
+function safeCompare(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
 
 export function registerAdminListNotesTool(server) {
   server.registerTool(
@@ -12,7 +21,7 @@ export function registerAdminListNotesTool(server) {
       }
     },
     async ({ secret }) => {
-      if (secret !== process.env.MCP_API_KEY) {
+      if (!safeCompare(secret, process.env.MCP_API_KEY)) {
         return { content: [{ type: "text", text: "認証エラー" }] };
       }
 
