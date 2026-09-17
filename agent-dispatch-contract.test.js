@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canRun, createAgentJob, isActive, isTerminal, ROLES } from "./agent-dispatch-contract.js";
+import { canRun, createAgentJob, isActive, isTerminal, nextAttempt, MAX_ATTEMPTS, ROLES } from "./agent-dispatch-contract.js";
 
 test("exposes the six bounded agent roles", () => {
   assert.deepEqual(ROLES, ["manager", "implementer", "tester", "reviewer", "repairer", "integrator"]);
+  assert.equal(MAX_ATTEMPTS, 3);
 });
 
 test("creates immutable bounded jobs", () => {
@@ -19,6 +20,17 @@ test("creates immutable bounded jobs", () => {
   assert.throws(() => createAgentJob({ id: "", role: "tester", instruction: "x" }));
   assert.throws(() => createAgentJob({ id: "x", role: "unknown", instruction: "x" }));
   assert.throws(() => createAgentJob({ id: "x", role: "tester", instruction: "x", attempt: 3 }));
+  assert.throws(() => createAgentJob({ id: "x", role: "tester", instruction: "x", dependsOn: [1] }));
+});
+
+test("enforces bounded retry progression", () => {
+  const job = createAgentJob({ id: "impl-1", role: "implementer", instruction: "Implement", resources: ["src/a.js"] });
+  const retry1 = nextAttempt(job);
+  const retry2 = nextAttempt(retry1);
+  assert.equal(retry1.attempt, 1);
+  assert.equal(retry2.attempt, 2);
+  assert.equal(nextAttempt(retry2), null);
+  assert.equal(canRun(retry2, []), true);
 });
 
 test("only runs jobs whose dependencies are complete and resources are free", () => {
