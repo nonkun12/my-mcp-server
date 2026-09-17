@@ -1,21 +1,16 @@
 import { z } from "zod";
 import { PersistentAgentDispatchQueue } from "../agent-dispatch-store.js";
-
-const MAX_ID = 128;
-const MAX_INSTRUCTION = 4000;
-const MAX_ITEMS = 32;
-const UNSAFE_CHARS = /[\u0000-\u001f\u007f\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]/u;
+import {
+  MAX_ID,
+  MAX_INSTRUCTION,
+  MAX_ITEMS,
+  UNSAFE_CHARS,
+  safeText,
+  resourcesSchema,
+  dependsOnSchema,
+} from "../agent-dispatch-validation.js";
 
 const dispatchQueue = new PersistentAgentDispatchQueue();
-
-const safeText = (max) =>
-  z.string()
-    .transform((value) => value.normalize("NFKC"))
-    .pipe(
-      z.string().trim().min(1).max(max).refine((value) => !UNSAFE_CHARS.test(value), "control, invisible, or bidi characters are not allowed")
-    );
-const resourcesSchema = z.array(safeText(256)).max(MAX_ITEMS);
-const dependsOnSchema = z.array(safeText(MAX_ID)).max(MAX_ITEMS);
 
 export function registerAgentDispatchTools(server) {
   server.registerTool(
