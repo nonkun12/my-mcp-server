@@ -3,6 +3,7 @@ import { createAgentJob, canRun, nextAttempt } from "./agent-dispatch-contract.j
 import { validateGraph } from "./agent-dispatch-queue.js";
 
 const MAX_QUEUE_SIZE = 128;
+const QUEUE_LOCK_KEY = 2147483001;
 
 function rowToJob(row) {
   if (!row) return null;
@@ -17,12 +18,17 @@ function rowToJob(row) {
   });
 }
 
+async function lockQueue(client) {
+  await client.query("SELECT pg_advisory_xact_lock($1)", [QUEUE_LOCK_KEY]);
+}
+
 export class PersistentAgentDispatchQueue {
   async enqueue(input) {
     const job = createAgentJob(input);
     const client = await db.connect();
     try {
       await client.query("BEGIN");
+      await lockQueue(client);
       const count = await client.query("SELECT COUNT(*)::int AS count FROM agent_dispatch_jobs");
       if (count.rows[0].count >= MAX_QUEUE_SIZE) throw new RangeError("dispatch queue limit exceeded");
       const existing = await client.query("SELECT id FROM agent_dispatch_jobs WHERE id = $1", [job.id]);
@@ -60,6 +66,7 @@ export class PersistentAgentDispatchQueue {
     const client = await db.connect();
     try {
       await client.query("BEGIN");
+      await lockQueue(client);
       const result = await client.query(
         "SELECT id, role, instruction, resources, depends_on, attempt, state FROM agent_dispatch_jobs WHERE id = $1 FOR UPDATE",
         [id]
@@ -111,6 +118,7 @@ export class PersistentAgentDispatchQueue {
     const client = await db.connect();
     try {
       await client.query("BEGIN");
+      await lockQueue(client);
       const result = await client.query("SELECT id, role, instruction, resources, depends_on, attempt, state FROM agent_dispatch_jobs WHERE id = $1 FOR UPDATE", [id]);
       const row = result.rows[0];
       if (!row || row.state !== "running") throw new TypeError(`job is not running: ${id}`);
@@ -143,20 +151,34 @@ export class PersistentAgentDispatchQueue {
   }
 
   async cancel(id) {
-    const result = await db.query(
-      "UPDATE agent_dispatch_jobs SET state = 'cancelled', updated_at = NOW() WHERE id = $1 AND state IN ('queued', 'running') RETURNING id, role, instruction, resources, depends_on, attempt, state",
-      [id]
-    );
-    if (!result.rowCount) return null;
-    await db.query(
-      `UPDATE agent_dispatch_jobs AS child SET state = 'cancelled', updated_at = NOW()
-       WHERE child.state = 'queued' AND EXISTS (
-         SELECT 1 FROM agent_dispatch_jobs AS dep
-         WHERE dep.id = ANY(child.depends_on) AND dep.state IN ('failed', 'cancelled')
-       )`
-    );
-    return rowToJob(result.rows[0]);
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await lockQueue(client);
+      const result = await client.query(
+        "UPDATE agent_dispatch_jobs SET state = 'cancelled', updated_at = NOW() WHERE id = $1 AND state IN ('queued', 'running') RETURNING id, role, instruction, resources, depends_on, attempt, state",
+        [id]
+      );
+      if (!result.rowCount) {
+        await client.query("COMMIT");
+        return null;
+      }
+      await client.query(
+        `UPDATE agent_dispatch_jobs AS child SET state = 'cancelled', updated_at = NOW()
+         WHERE child.state = 'queued' AND EXISTS (
+           SELECT 1 FROM agent_dispatch_jobs AS dep
+           WHERE dep.id = ANY(child.depends_on) AND dep.state IN ('failed', 'cancelled')
+         )`
+      );
+      await client.query("COMMIT");
+      return rowToJob(result.rows[0]);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 
-export { MAX_QUEUE_SIZE, rowToJob };
+export { MAX_QUEUE_SIZE, QUEUE_LOCK_KEY, rowToJob };
