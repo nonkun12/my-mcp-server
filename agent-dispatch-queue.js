@@ -1,6 +1,7 @@
 import { canRun, createAgentJob, isActive, isTerminal, nextAttempt } from "./agent-dispatch-contract.js";
 
 const STATES = Object.freeze(["queued", "running", "succeeded", "failed", "cancelled"]);
+const MAX_QUEUE_SIZE = 128;
 
 function validateGraph(jobs) {
   const ids = new Set();
@@ -37,6 +38,7 @@ export class AgentDispatchQueue {
   enqueue(job) {
     const normalized = createAgentJob(job);
     if (this.#jobs.has(normalized.id)) throw new TypeError(`duplicate job id: ${normalized.id}`);
+    if (this.#jobs.size >= MAX_QUEUE_SIZE) throw new RangeError("dispatch queue limit exceeded");
     const candidateJobs = [...this.#jobs.values(), normalized];
     validateGraph(candidateJobs);
     this.#jobs.set(normalized.id, normalized);
@@ -45,7 +47,11 @@ export class AgentDispatchQueue {
   }
 
   enqueueBatch(jobs) {
+    if (!Array.isArray(jobs)) throw new TypeError("jobs must be an array");
     const normalized = jobs.map((job) => createAgentJob(job));
+    if (this.#jobs.size + normalized.length > MAX_QUEUE_SIZE) {
+      throw new RangeError("dispatch queue limit exceeded");
+    }
     validateGraph([...this.#jobs.values(), ...normalized]);
     for (const job of normalized) {
       if (this.#jobs.has(job.id)) throw new TypeError(`duplicate job id: ${job.id}`);
@@ -68,7 +74,10 @@ export class AgentDispatchQueue {
     }
     if (!dependencies.every((state) => state === "succeeded")) return null;
     const activeJobs = [...this.#active].map((activeId) => this.#jobs.get(activeId));
-    if (!canRun(job, job.dependsOn, activeJobs)) return null;
+    const completedIds = [...this.#states.entries()]
+      .filter(([, state]) => state === "succeeded")
+      .map(([jobId]) => jobId);
+    if (!canRun(job, completedIds, activeJobs)) return null;
     this.#active.add(id);
     this.#states.set(id, "running");
     return this.get(id);
@@ -124,4 +133,4 @@ export class AgentDispatchQueue {
   }
 }
 
-export { STATES, validateGraph, isActive, isTerminal };
+export { MAX_QUEUE_SIZE, STATES, validateGraph, isActive, isTerminal };
