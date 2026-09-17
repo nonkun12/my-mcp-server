@@ -6,6 +6,7 @@ import { registerListNotesTool } from "./list-notes.js";
 import { registerDeleteNoteTool } from "./delete-note.js";
 import { registerDeleteAllNotesTool } from "./delete-all-notes.js";
 import { registerAdminListNotesTool } from "./admin-list-notes.js";
+import { registerAgentDispatchTools } from "./agent-dispatch.js";
 
 const TOOL_REGISTRARS = [
   registerMemoryTools,
@@ -15,7 +16,8 @@ const TOOL_REGISTRARS = [
   registerListNotesTool,
   registerDeleteNoteTool,
   registerDeleteAllNotesTool,
-  registerAdminListNotesTool
+  registerAdminListNotesTool,
+  registerAgentDispatchTools
 ];
 
 export function registerAllTools(server) {
