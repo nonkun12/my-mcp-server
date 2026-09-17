@@ -4,10 +4,16 @@ import { AgentDispatchQueue } from "../agent-dispatch-queue.js";
 const MAX_ID = 128;
 const MAX_INSTRUCTION = 4000;
 const MAX_ITEMS = 32;
+const UNSAFE_CHARS = /[\u0000-\u001f\u007f\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]/u;
 
 const dispatchQueue = new AgentDispatchQueue();
 
-const safeText = (max) => z.string().trim().min(1).max(max).refine((value) => !/[\u0000-\u001f\u007f]/.test(value), "control characters are not allowed");
+const safeText = (max) =>
+  z.string()
+    .transform((value) => value.normalize("NFKC"))
+    .pipe(
+      z.string().trim().min(1).max(max).refine((value) => !UNSAFE_CHARS.test(value), "control, invisible, or bidi characters are not allowed")
+    );
 const resourcesSchema = z.array(safeText(256)).max(MAX_ITEMS);
 const dependsOnSchema = z.array(safeText(MAX_ID)).max(MAX_ITEMS);
 
@@ -64,4 +70,4 @@ export function registerAgentDispatchTools(server) {
   );
 }
 
-export { dispatchQueue };
+export { dispatchQueue, safeText, UNSAFE_CHARS };
