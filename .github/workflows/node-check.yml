@@ -28,4 +28,8 @@ jobs:
           node --check index.js
           node --check database.js
           node --check delete-reminder.js
+          node --check agent-dispatch-contract.js
+          node --check agent-dispatch-queue.js
           find tools -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
+      - name: Dispatch contract tests
+        run: node --test agent-dispatch-contract.test.js agent-dispatch-queue.test.js
