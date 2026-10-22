@@ -92,6 +92,7 @@ function createReviewServer() {
 
         const pr = await githubJson(`/repos/${REPO}/pulls/${pr_number}`);
         const actualSha = pr?.head?.sha;
+        const actualBaseSha = pr?.base?.sha;
 
         if (typeof actualSha !== "string" || actualSha.toLowerCase() !== expected_head_sha.toLowerCase()) {
           return jsonResult({
@@ -105,6 +106,9 @@ function createReviewServer() {
 
         if (pr.state !== "open" || pr.merged === true) {
           return jsonResult({ status: "BLOCKED", reason: "pull_request_not_open", state: pr.state, merged: pr.merged });
+        }
+        if (typeof actualBaseSha !== "string" || !/^[a-f0-9]{40}$/i.test(actualBaseSha)) {
+          return jsonResult({ status: "BLOCKED", reason: "base_sha_unavailable" });
         }
 
         const files = await githubJson(`/repos/${REPO}/pulls/${pr_number}/files?per_page=100&page=1`);
@@ -184,6 +188,18 @@ function createReviewServer() {
             instruction: "Discard this packet and retry only with the latest exact head SHA.",
           });
         }
+        if (finalPr?.base?.sha !== actualBaseSha) {
+          return jsonResult({
+            status: "BLOCKED",
+            reason: "base_sha_changed_during_review_bundle_fetch",
+            initial_base_sha: actualBaseSha,
+            final_base_sha: finalPr?.base?.sha ?? null,
+            instruction: "Discard this packet and fetch the PR diff and CI evidence again against the current base SHA.",
+          });
+        }
+        if (finalPr?.state !== "open" || finalPr?.merged === true) {
+          return jsonResult({ status: "BLOCKED", reason: "pull_request_not_open_at_final_check" });
+        }
 
         if (!allChecksGreen) {
           return jsonResult({
@@ -210,7 +226,7 @@ function createReviewServer() {
             url: pr.html_url,
             state: pr.state,
             draft: pr.draft,
-            base_sha: pr.base?.sha ?? null,
+            base_sha: actualBaseSha,
             head_sha: actualSha,
             changed_file_count: changedFiles.length,
           },
