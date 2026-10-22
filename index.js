@@ -59,7 +59,7 @@ function requireApiKey(req, res, next) {
   next();
 }
 
-attachReviewEndpoint(app, requireApiKey);
+attachReviewEndpoint(app);
 
 // =================================
 // Health Check(認証不要・Render監視用)
