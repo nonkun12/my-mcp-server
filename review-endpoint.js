@@ -231,7 +231,7 @@ function createReviewServer() {
         return jsonResult({
           status: "BLOCKED",
           reason: "review_bundle_unavailable",
-          detail: error instanceof Error ? error.message : "unknown_error",
+          detail: "GitHub API, network, or response-processing failure; internal error details are intentionally suppressed.",
           instruction: "Do not review or approve from partial data; retry only after the cause is understood.",
         });
       }
