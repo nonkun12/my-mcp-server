@@ -110,3 +110,46 @@ test("does not expose arbitrary write tools", async () => {
   const body = await response.json();
   assert.deepEqual(body.result.tools.map((tool) => tool.name), ["get_pr_review_bundle"]);
 });
+
+test("blocks a stale expected head SHA before fetching diff or CI", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    assert.match(String(url), /\/repos\/nonkun12\/line-bot\/pulls\/809$/);
+    return new Response(JSON.stringify({
+      number: 809,
+      state: "open",
+      merged: false,
+      head: { sha: "b".repeat(40) },
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "x-api-key": TEST_KEY,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: {
+          name: "get_pr_review_bundle",
+          arguments: { pr_number: 809, expected_head_sha: "a".repeat(40) },
+        },
+      }),
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    const payload = JSON.parse(body.result.content[0].text);
+    assert.equal(payload.status, "BLOCKED");
+    assert.equal(payload.reason, "head_sha_mismatch");
+    assert.equal(calls.length, 1, "must not fetch diff or CI after SHA mismatch");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
