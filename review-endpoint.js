@@ -149,7 +149,12 @@ function createReviewServer() {
           githubJson(`/repos/${REPO}/commits/${actualSha}/status`),
         ]);
 
-        if (!Array.isArray(checks.check_runs) || !Array.isArray(combinedStatus.statuses) || checks.total_count !== checks.check_runs.length) {
+        if (
+          !Array.isArray(checks.check_runs) ||
+          !Array.isArray(combinedStatus.statuses) ||
+          checks.total_count !== checks.check_runs.length ||
+          combinedStatus.total_count !== combinedStatus.statuses.length
+        ) {
           return jsonResult({ status: "BLOCKED", reason: "ci_evidence_unavailable", head_sha: actualSha });
         }
 
