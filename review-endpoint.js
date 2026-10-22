@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
@@ -120,7 +119,7 @@ function createReviewServer() {
           githubJson(`/repos/${REPO}/commits/${actualSha}/status`),
         ]);
 
-        if (!Array.isArray(checks.check_runs) || !Array.isArray(combinedStatus.statuses)) {
+        if (!Array.isArray(checks.check_runs) || !Array.isArray(combinedStatus.statuses) || checks.total_count !== checks.check_runs.length) {
           return jsonResult({ status: "BLOCKED", reason: "ci_evidence_unavailable", head_sha: actualSha });
         }
 
