@@ -37,6 +37,27 @@ jobs:
               console.log(JSON.stringify({ package: name, severity: item.severity, direct: item.isDirect, range: item.range, fixAvailable: item.fixAvailable, via }));
             }
           '
+      - name: Preview non-breaking audit remediation (dry run only)
+        run: |
+          npm audit fix --dry-run --json > "$RUNNER_TEMP/npm-audit-fix-preview.json" 2> "$RUNNER_TEMP/npm-audit-fix-preview.stderr" || true
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const p = process.env.RUNNER_TEMP + "/npm-audit-fix-preview.json";
+            const raw = fs.readFileSync(p, "utf8").trim();
+            if (!raw) {
+              console.log("Audit remediation preview returned no JSON; inspect npm output without applying changes.");
+              process.exit(0);
+            }
+            try {
+              const report = JSON.parse(raw);
+              console.log("audit fix dry-run summary:", JSON.stringify(report.metadata?.vulnerabilities ?? {}));
+              console.log("audit fix dry-run top-level keys:", Object.keys(report).join(", "));
+              console.log("audit fix dry-run changes:", JSON.stringify({ added: report.added, removed: report.removed, changed: report.changed, audited: report.audited }));
+            } catch {
+              console.log("Audit remediation preview output was not JSON; no changes were applied.");
+            }
+          '
+          echo "npm audit fix preview is diagnostic only; package files are not changed by this step."
       - name: Syntax check
         run: |
           node --check index.js
