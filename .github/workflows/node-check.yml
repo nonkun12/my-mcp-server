@@ -28,4 +28,5 @@ jobs:
           node --check index.js
           node --check database.js
           node --check delete-reminder.js
+          node --check review-endpoint.js
           find tools -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
