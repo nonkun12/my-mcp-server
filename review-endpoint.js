@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
+import crypto from "node:crypto";
 
 const REPO = "nonkun12/line-bot";
 const API_ROOT = "https://api.github.com";
@@ -27,6 +28,35 @@ async function githubJson(path) {
   }
 
   return response.json();
+}
+
+function requireReviewApiKey(req, res, next) {
+  const expected = process.env.PR_REVIEW_API_KEY;
+  const provided = req.header("x-api-key");
+  if (typeof expected !== "string" || expected.length < 32) {
+    return res.status(503).json({
+      jsonrpc: "2.0",
+      error: { code: -32000, message: "PR review authentication is not configured" },
+      id: null,
+    });
+  }
+  if (typeof provided !== "string") {
+    return res.status(401).json({
+      jsonrpc: "2.0",
+      error: { code: -32001, message: "Unauthorized" },
+      id: null,
+    });
+  }
+  const expectedBuffer = Buffer.from(expected);
+  const providedBuffer = Buffer.from(provided);
+  if (expectedBuffer.length !== providedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, providedBuffer)) {
+    return res.status(401).json({
+      jsonrpc: "2.0",
+      error: { code: -32001, message: "Unauthorized" },
+      id: null,
+    });
+  }
+  next();
 }
 
 function createReviewServer() {
@@ -190,8 +220,8 @@ function createReviewServer() {
   return server;
 }
 
-export function attachReviewEndpoint(app, requireApiKey) {
-  app.post("/review-mcp", requireApiKey, async (req, res) => {
+export function attachReviewEndpoint(app) {
+  app.post("/review-mcp", requireReviewApiKey, async (req, res) => {
     const server = createReviewServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
