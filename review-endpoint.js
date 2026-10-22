@@ -139,6 +139,17 @@ function createReviewServer() {
           checkRuns.every((check) => check.status === "completed" && check.conclusion === "success") &&
           statusChecks.every((check) => check.state === "success");
 
+        const finalPr = await githubJson(`/repos/${REPO}/pulls/${pr_number}`);
+        if (finalPr?.head?.sha !== actualSha) {
+          return jsonResult({
+            status: "BLOCKED",
+            reason: "head_sha_changed_during_review_bundle_fetch",
+            initial_head_sha: actualSha,
+            final_head_sha: finalPr?.head?.sha ?? null,
+            instruction: "Discard this packet and retry only with the latest exact head SHA.",
+          });
+        }
+
         return jsonResult({
           status: "READY_FOR_REVIEW",
           repository: REPO,
