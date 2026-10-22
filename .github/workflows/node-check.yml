@@ -47,6 +47,30 @@ jobs:
           echo "Preview output (diagnostic only; no package files are committed):"
           sed -E 's/(https?:\/\/[^[:space:]]+)\?[^[:space:]]+/\1?[redacted]/g' "$RUNNER_TEMP/npm-audit-fix-preview.log" | tail -n 100
           echo "Dry-run exit status is diagnostic only; tests and audit report determine the gate."
+      - name: Trial non-breaking remediation in ephemeral CI workspace
+        run: |
+          set +e
+          npm audit fix > "$RUNNER_TEMP/npm-audit-fix-trial.log" 2>&1
+          fix_status=$?
+          set -e
+          echo "npm audit fix exit status: $fix_status"
+          echo "Trial output (runner workspace only; repository files are not committed):"
+          tail -n 80 "$RUNNER_TEMP/npm-audit-fix-trial.log"
+          echo "Lockfile diff summary after trial:"
+          git diff --stat -- package.json package-lock.json
+          npm audit --json > "$RUNNER_TEMP/npm-audit-after-trial.json" || true
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const p = process.env.RUNNER_TEMP + "/npm-audit-after-trial.json";
+            const report = JSON.parse(fs.readFileSync(p, "utf8"));
+            console.log("post-trial audit summary:", JSON.stringify(report.metadata?.vulnerabilities ?? {}));
+            for (const [name, item] of Object.entries(report.vulnerabilities ?? {})) {
+              console.log(JSON.stringify({ package: name, severity: item.severity, range: item.range, fixAvailable: item.fixAvailable }));
+            }
+          '
+          echo "Running endpoint regression tests against the trial dependency tree."
+          node --test review-endpoint.test.js
+          echo "This step is an isolated experiment only; no lockfile is committed or deployed."
       - name: Syntax check
         run: |
           node --check index.js
