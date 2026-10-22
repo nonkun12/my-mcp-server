@@ -238,6 +238,67 @@ test("blocks when combined status checks are truncated", async () => {
   }
 });
 
+test("blocks when CI evidence is missing or no check runs exist", async () => {
+  const originalFetch = globalThis.fetch;
+  const sha = "a".repeat(40);
+  let prReads = 0;
+  globalThis.fetch = async (url) => {
+    const target = String(url);
+    if (target.endsWith("/repos/nonkun12/line-bot/pulls/809")) {
+      prReads += 1;
+      return new Response(JSON.stringify({
+        number: 809, title: "test", html_url: "https://github.com/nonkun12/line-bot/pull/809",
+        state: "open", merged: false, draft: true,
+        head: { sha }, base: { sha: "b".repeat(40) },
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (target.endsWith("/repos/nonkun12/line-bot/pulls/809/files?per_page=100&page=1")) {
+      return new Response(JSON.stringify([{
+        filename: "example.js", status: "modified", additions: 1, deletions: 0, patch: "@@ -1 +1 @@"
+      }]), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (target.endsWith(`/repos/nonkun12/line-bot/commits/${sha}/check-runs?per_page=100`)) {
+      return new Response(JSON.stringify({ total_count: 0, check_runs: [] }), {
+        status: 200, headers: { "content-type": "application/json" }
+      });
+    }
+    if (target.endsWith(`/repos/nonkun12/line-bot/commits/${sha}/status`)) {
+      return new Response(JSON.stringify({ total_count: 0, statuses: [] }), {
+        status: 200, headers: { "content-type": "application/json" }
+      });
+    }
+    throw new Error(`Unexpected mocked URL: ${target}`);
+  };
+
+  try {
+    const response = await originalFetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "x-api-key": TEST_KEY,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 6,
+        method: "tools/call",
+        params: {
+          name: "get_pr_review_bundle",
+          arguments: { pr_number: 809, expected_head_sha: sha },
+        },
+      }),
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    const payload = JSON.parse(body.result.content[0].text);
+    assert.equal(payload.status, "BLOCKED");
+    assert.equal(payload.reason, "ci_not_green_or_incomplete");
+    assert.equal(prReads, 2, "must recheck PR head SHA before returning the blocked result");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("blocks a stale expected head SHA before fetching diff or CI", async () => {
   const originalFetch = globalThis.fetch;
   const calls = [];
