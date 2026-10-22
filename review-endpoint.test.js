@@ -447,3 +447,68 @@ test("suppresses upstream error details in blocked responses", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("blocks when the PR head SHA changes while collecting the review bundle", async () => {
+  const originalFetch = globalThis.fetch;
+  const initialSha = "1".repeat(40);
+  const advancedSha = "2".repeat(40);
+  const baseSha = "3".repeat(40);
+  let prReads = 0;
+  globalThis.fetch = async (url) => {
+    const target = String(url);
+    if (target.endsWith("/repos/nonkun12/line-bot/pulls/809")) {
+      prReads += 1;
+      return new Response(JSON.stringify({
+        number: 809, title: "test", html_url: "https://github.com/nonkun12/line-bot/pull/809",
+        state: "open", merged: false, draft: true,
+        head: { sha: prReads === 1 ? initialSha : advancedSha }, base: { sha: baseSha },
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (target.endsWith("/repos/nonkun12/line-bot/pulls/809/files?per_page=100&page=1")) {
+      return new Response(JSON.stringify([{
+        filename: "example.js", status: "modified", additions: 1, deletions: 0, patch: "@@ -1 +1 @@"
+      }]), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (target.endsWith(`/repos/nonkun12/line-bot/commits/${initialSha}/check-runs?per_page=100`)) {
+      return new Response(JSON.stringify({
+        total_count: 1,
+        check_runs: [{ name: "check", status: "completed", conclusion: "success", details_url: "https://github.com/" }],
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (target.endsWith(`/repos/nonkun12/line-bot/commits/${initialSha}/status`)) {
+      return new Response(JSON.stringify({ total_count: 0, statuses: [] }), {
+        status: 200, headers: { "content-type": "application/json" }
+      });
+    }
+    throw new Error(`Unexpected mocked URL: ${target}`);
+  };
+
+  try {
+    const response = await originalFetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "x-api-key": TEST_KEY,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 9,
+        method: "tools/call",
+        params: {
+          name: "get_pr_review_bundle",
+          arguments: { pr_number: 809, expected_head_sha: initialSha },
+        },
+      }),
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    const payload = JSON.parse(body.result.content[0].text);
+    assert.equal(payload.status, "BLOCKED");
+    assert.equal(payload.reason, "head_sha_changed_during_review_bundle_fetch");
+    assert.equal(prReads, 2, "must compare initial and final head SHA");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
