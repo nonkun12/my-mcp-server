@@ -342,3 +342,44 @@ test("blocks a stale expected head SHA before fetching diff or CI", async () => 
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("suppresses upstream error details in blocked responses", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /\/repos\/nonkun12\/line-bot\/pulls\/809$/);
+    return new Response("sensitive upstream diagnostic", {
+      status: 500,
+      headers: { "content-type": "text/plain" },
+    });
+  };
+
+  try {
+    const response = await originalFetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "x-api-key": TEST_KEY,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 7,
+        method: "tools/call",
+        params: {
+          name: "get_pr_review_bundle",
+          arguments: { pr_number: 809, expected_head_sha: "a".repeat(40) },
+        },
+      }),
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    const payload = JSON.parse(body.result.content[0].text);
+    assert.equal(payload.status, "BLOCKED");
+    assert.equal(payload.reason, "review_bundle_unavailable");
+    assert.doesNotMatch(JSON.stringify(payload), /sensitive upstream diagnostic/);
+    assert.match(payload.detail, /details are intentionally suppressed/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
