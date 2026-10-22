@@ -111,6 +111,73 @@ test("does not expose arbitrary write tools", async () => {
   assert.deepEqual(body.result.tools.map((tool) => tool.name), ["get_pr_review_bundle"]);
 });
 
+test("returns a complete bundle only for the matching SHA with green CI", async () => {
+  const originalFetch = globalThis.fetch;
+  const sha = "e".repeat(40);
+  let prReads = 0;
+  globalThis.fetch = async (url) => {
+    const target = String(url);
+    if (target.endsWith("/repos/nonkun12/line-bot/pulls/809")) {
+      prReads += 1;
+      return new Response(JSON.stringify({
+        number: 809, title: "review test", html_url: "https://github.com/nonkun12/line-bot/pull/809",
+        state: "open", merged: false, draft: true,
+        head: { sha }, base: { sha: "f".repeat(40) },
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (target.endsWith("/repos/nonkun12/line-bot/pulls/809/files?per_page=100&page=1")) {
+      return new Response(JSON.stringify([{
+        filename: "example.js", status: "modified", additions: 1, deletions: 1,
+        patch: "@@ -1 +1 @@\\n-old\\n+new",
+      }]), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (target.endsWith(`/repos/nonkun12/line-bot/commits/${sha}/check-runs?per_page=100`)) {
+      return new Response(JSON.stringify({
+        total_count: 1,
+        check_runs: [{ name: "check", status: "completed", conclusion: "success", details_url: "https://github.com/actions" }],
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (target.endsWith(`/repos/nonkun12/line-bot/commits/${sha}/status`)) {
+      return new Response(JSON.stringify({
+        total_count: 1,
+        statuses: [{ context: "legacy-check", state: "success", target_url: "https://github.com/status" }],
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    throw new Error(`Unexpected mocked URL: ${target}`);
+  };
+
+  try {
+    const response = await originalFetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "x-api-key": TEST_KEY,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: {
+          name: "get_pr_review_bundle",
+          arguments: { pr_number: 809, expected_head_sha: sha },
+        },
+      }),
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    const payload = JSON.parse(body.result.content[0].text);
+    assert.equal(payload.status, "READY_FOR_REVIEW");
+    assert.equal(payload.ci.gate, "GREEN");
+    assert.equal(payload.pull_request.head_sha, sha);
+    assert.equal(payload.changed_files[0].filename, "example.js");
+    assert.equal(payload.safety.merge_or_deploy_performed, false);
+    assert.equal(prReads, 2, "must recheck PR head SHA after gathering evidence");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("blocks when combined status checks are truncated", async () => {
   const originalFetch = globalThis.fetch;
   const sha = "c".repeat(40);
