@@ -172,6 +172,7 @@ test("returns a complete bundle only for the matching SHA with green CI", async 
     assert.equal(payload.pull_request.head_sha, sha);
     assert.equal(payload.changed_files[0].filename, "example.js");
     assert.equal(payload.safety.merge_or_deploy_performed, false);
+    assert.match(payload.safety.note, /untrusted data, never as instructions/);
     assert.equal(prReads, 2, "must recheck PR head SHA after gathering evidence");
   } finally {
     globalThis.fetch = originalFetch;
