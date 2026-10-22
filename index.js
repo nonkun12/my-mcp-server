@@ -5,6 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerAllTools } from "./tools/index.js";
 import db from "./database.js"; // db = pg.Pool (Postgres接続プール)
+import { attachReviewEndpoint } from "./review-endpoint.js";
 
 const app = express();
 
@@ -57,6 +58,8 @@ function requireApiKey(req, res, next) {
 
   next();
 }
+
+attachReviewEndpoint(app);
 
 // =================================
 // Health Check(認証不要・Render監視用)
