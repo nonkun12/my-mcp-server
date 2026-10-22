@@ -185,6 +185,22 @@ function createReviewServer() {
           });
         }
 
+        if (!allChecksGreen) {
+          return jsonResult({
+            status: "BLOCKED",
+            reason: "ci_not_green_or_incomplete",
+            head_sha: actualSha,
+            ci: {
+              gate: "NOT_GREEN_OR_INCOMPLETE",
+              check_run_count: checkRuns.length,
+              status_check_count: statusChecks.length,
+              check_runs: checkRuns,
+              status_checks: statusChecks,
+            },
+            instruction: "Do not review this packet as ready; resolve CI failures or provide complete successful checks for this exact SHA.",
+          });
+        }
+
         return jsonResult({
           status: "READY_FOR_REVIEW",
           repository: REPO,
