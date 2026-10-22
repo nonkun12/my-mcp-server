@@ -126,7 +126,7 @@ test("blocks a stale expected head SHA before fetching diff or CI", async () => 
   };
 
   try {
-    const response = await fetch(baseUrl, {
+    const response = await originalFetch(baseUrl, {
       method: "POST",
       headers: {
         "content-type": "application/json",
