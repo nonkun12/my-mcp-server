@@ -34,3 +34,10 @@ test("note and memory contents are not emitted to application logs", async () =>
   assert.doesNotMatch(memory, /GET_ALL_MEMORY RESULT/);
   assert.doesNotMatch(reminders, /TOOL CALL.*message=\$\{message\}/);
 });
+
+
+test("legacy hard-coded reminder deletion script is disabled", async () => {
+  const source = await read("../delete-reminder.js");
+  assert.match(source, /disabled for safety/i);
+  assert.doesNotMatch(source, /DELETE FROM reminders/i);
+});
