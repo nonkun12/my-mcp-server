@@ -61,7 +61,7 @@ export function registerSearchNotesTool(server) {
           content: [
             {
               type: "text",
-              text: "検索エラー: " + error.message
+              text: "メモ検索に失敗しました。"
             }
           ]
         };
