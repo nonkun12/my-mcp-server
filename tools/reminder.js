@@ -27,9 +27,9 @@ export function registerReminderTools(server) {
         "ユーザーが「毎日」「毎朝」のように繰り返しを希望した場合は repeat='daily' を指定してください。" +
         "その場合、remind_atは1回目に送る日時(以降は毎日同じ時刻に自動継続)にしてください。",
       inputSchema: {
-        user_id: z.string().describe("リマインド対象のユーザーID"),
-        remind_at: z.string().describe("ISO 8601形式の日時(タイムゾーン付き推奨)"),
-        message: z.string().describe("リマインド時に送る内容"),
+        user_id: z.string().min(1).max(200).describe("リマインド対象のユーザーID"),
+        remind_at: z.string().min(1).max(100).describe("ISO 8601形式の日時(タイムゾーン付き推奨)"),
+        message: z.string().min(1).max(2000).describe("リマインド時に送る内容"),
         repeat: z
           .enum(["none", "daily"])
           .optional()
@@ -99,7 +99,7 @@ export function registerReminderTools(server) {
         "過去日時の単発リマインダーは一覧から除外します。" +
         "ユーザーが「今何がセットされてる?」「リマインダー一覧」のように聞いてきたときに使います。",
       inputSchema: {
-        user_id: z.string().describe("対象ユーザーのID")
+        user_id: z.string().min(1).max(200).describe("対象ユーザーのID")
       }
     },
 
@@ -168,7 +168,7 @@ export function registerReminderTools(server) {
         "idは list_reminders で確認したものを使ってください。" +
         "他のユーザーのリマインダーは削除できないよう、user_idと一致するもののみ削除します。",
       inputSchema: {
-        user_id: z.string().describe("対象ユーザーのID"),
+        user_id: z.string().min(1).max(200).describe("対象ユーザーのID"),
         id: z.number().describe("キャンセルしたいリマインダーのid(list_remindersで確認)")
       }
     },
@@ -232,7 +232,7 @@ export function registerReminderTools(server) {
         "AI秘書が「今日の予定/リマインダーを教えて」と聞かれたときの確認用に使ってください。" +
         "今日より前の日付のものは含まれません。",
       inputSchema: {
-        user_id: z.string().describe("対象ユーザーのID")
+        user_id: z.string().min(1).max(200).describe("対象ユーザーのID")
       }
     },
 
