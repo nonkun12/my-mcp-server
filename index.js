@@ -90,8 +90,7 @@ function createMcpServer() {
 // =================================
 
 app.post("/mcp", requireApiKey, async (req, res) => {
-  console.log("===== MCP REQUEST =====");
-  console.log(JSON.stringify(req.body, null, 2));
+  // MCP payloads can contain private memories and notes; never log raw request bodies.
 
   const server = createMcpServer();
 
