@@ -46,7 +46,7 @@ export function registerAdminListNotesTool(server) {
           content: [
             {
               type: "text",
-              text: "取得エラー: " + error.message
+              text: "メモ一覧の取得に失敗しました。"
             }
           ]
         };
