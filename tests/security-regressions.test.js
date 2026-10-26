@@ -56,6 +56,7 @@ test("MCP tool inputs have explicit bounds for identifiers and large text fields
     assert.ok(source.includes("user_id: z.string().min(1).max(200)"));
   }
   assert.ok(memory.includes("value: z.string().max(10000)"));
+  assert.equal((memory.match(/key: z\\.string\\(\\)\\.min\\(1\\)\\.max\\(200\\)/g) || []).length, 3);
   assert.ok(saveNote.includes("body: z.string().min(1).max(10000)"));
   assert.ok(searchNotes.includes("keyword: z.string().min(1).max(200)"));
   assert.ok(reminders.includes("message: z.string().min(1).max(2000)"));
