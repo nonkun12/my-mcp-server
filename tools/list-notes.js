@@ -13,9 +13,6 @@ export function registerListNotesTool(server) {
     },
     async ({ user_id }) => {
       try {
-        console.log("===== LIST NOTES TOOL CALLED =====");
-        console.log({ user_id });
-
         const result = await db.query(
           `
           SELECT id, title, body, category, created_at
@@ -25,8 +22,6 @@ export function registerListNotesTool(server) {
           `,
           [user_id]
         );
-
-        console.log("LIST RESULT:", result.rows);
 
         return {
           content: [
@@ -38,13 +33,13 @@ export function registerListNotesTool(server) {
         };
 
       } catch (error) {
-        console.error("LIST NOTES ERROR:", error);
+        console.error("LIST NOTES FAILED:", error instanceof Error ? error.name : "UnknownError");
 
         return {
           content: [
             {
               type: "text",
-              text: "一覧取得エラー: " + error.message
+              text: "メモ一覧の取得に失敗しました。"
             }
           ]
         };
