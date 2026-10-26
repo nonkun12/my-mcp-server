@@ -16,8 +16,8 @@ export function registerMemoryTools(server) {
       title: "Save Memory",
       description: "特定ユーザーの情報をkey/valueの形でPostgresへ保存します",
       inputSchema: {
-        user_id: z.string().min(1).max(200).min(1).max(200).describe("記憶の持ち主を識別するID(呼び出し元クライアントが指定)"),
-        key: z.string().min(1).max(200),
+        user_id: z.string().min(1).max(200).describe("記憶の持ち主を識別するID(呼び出し元クライアントが指定)"),
+        key: z.string().min(1).max(200).min(1).max(200),
         value: z.string().max(10000),
         category: z.string().max(100).optional().default("general"),
         importance: z.string().max(32).optional().default("normal")
@@ -76,8 +76,8 @@ export function registerMemoryTools(server) {
       title: "Get Memory",
       description: "特定ユーザーの記憶をPostgresから取得します",
       inputSchema: {
-        user_id: z.string().min(1).max(200).min(1).max(200).describe("記憶の持ち主を識別するID(呼び出し元クライアントが指定)"),
-        key: z.string()
+        user_id: z.string().min(1).max(200).describe("記憶の持ち主を識別するID(呼び出し元クライアントが指定)"),
+        key: z.string().min(1).max(200)
       }
     },
 
@@ -139,8 +139,8 @@ export function registerMemoryTools(server) {
       title: "Delete Memory",
       description: "特定ユーザーの記憶を削除します",
       inputSchema: {
-        user_id: z.string().min(1).max(200).min(1).max(200),
-        key: z.string()
+        user_id: z.string().min(1).max(200),
+        key: z.string().min(1).max(200)
       }
     },
 
