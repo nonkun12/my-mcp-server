@@ -16,22 +16,7 @@ export function registerSaveNoteTool(server) {
     },
     async ({ user_id, title, body, category = "一般" }) => {
 
-      console.log("===== SAVE_NOTE TOOL CALLED =====");
-      console.log({
-        user_id,
-        title,
-        body,
-        category
-      });
-
       try {
-        console.log("SAVE NOTE:", {
-          user_id,
-          title,
-          body,
-          category
-        });
-
         const duplicate = await db.query(
           `
           SELECT id FROM notes
@@ -43,8 +28,6 @@ export function registerSaveNoteTool(server) {
         );
 
         if (duplicate.rows.length > 0) {
-          console.log("DUPLICATE NOTE:", duplicate.rows[0]);
-
           return {
             content: [
               {
@@ -64,8 +47,6 @@ export function registerSaveNoteTool(server) {
           [user_id, title, body, category]
         );
 
-        console.log("SAVE RESULT:", result.rows);
-
         return {
           content: [
             {
@@ -79,7 +60,7 @@ export function registerSaveNoteTool(server) {
           content: [
             {
               type: "text",
-              text: "保存エラー: " + error.message
+              text: "メモの保存に失敗しました。"
             }
           ]
         };
