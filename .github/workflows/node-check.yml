@@ -29,3 +29,4 @@ jobs:
           node --check database.js
           node --check delete-reminder.js
           find tools -type f -name '*.js' -print0 | xargs -0 -r -n1 node --check
+          node --test tests/security-regressions.test.js

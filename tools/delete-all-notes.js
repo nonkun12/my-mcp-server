@@ -8,7 +8,7 @@ export function registerDeleteAllNotesTool(server) {
       title: "Delete All Notes",
       description: "ユーザーのすべてのメモを削除します",
       inputSchema: {
-        user_id: z.string().describe("LINEユーザーID")
+        user_id: z.string().min(1).max(200).describe("LINEユーザーID")
       }
     },
     async ({ user_id }) => {
@@ -34,7 +34,7 @@ export function registerDeleteAllNotesTool(server) {
           content: [
             {
               type: "text",
-              text: "削除エラー: " + error.message
+              text: "メモの削除に失敗しました。"
             }
           ]
         };

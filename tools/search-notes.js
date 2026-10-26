@@ -8,8 +8,8 @@ export function registerSearchNotesTool(server) {
       title: "Search Notes",
       description: "メモをキーワードで検索します",
       inputSchema: {
-        user_id: z.string().describe("LINEユーザーID"),
-        keyword: z.string().describe("検索キーワード")
+        user_id: z.string().min(1).max(200).describe("LINEユーザーID"),
+        keyword: z.string().min(1).max(200).describe("検索キーワード")
       }
     },
     async ({ user_id, keyword }) => {
@@ -61,7 +61,7 @@ export function registerSearchNotesTool(server) {
           content: [
             {
               type: "text",
-              text: "検索エラー: " + error.message
+              text: "メモ検索に失敗しました。"
             }
           ]
         };

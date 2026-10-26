@@ -8,7 +8,7 @@ import db from "./database.js"; // db = pg.Pool (Postgres接続プール)
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "256kb" }));
 
 // =================================
 // 認証
@@ -90,8 +90,7 @@ function createMcpServer() {
 // =================================
 
 app.post("/mcp", requireApiKey, async (req, res) => {
-  console.log("===== MCP REQUEST =====");
-  console.log(JSON.stringify(req.body, null, 2));
+  // MCP payloads can contain private memories and notes; never log raw request bodies.
 
   const server = createMcpServer();
 
@@ -124,7 +123,7 @@ app.post("/mcp", requireApiKey, async (req, res) => {
     console.log("HEADERS SENT:", res.headersSent);
     console.log("RES FINISHED:", res.finished);
   } catch (error) {
-    console.error("MCP REQUEST ERROR:", error);
+    console.error("MCP REQUEST FAILED:", error instanceof Error ? error.name : "UnknownError");
 
     if (!res.headersSent) {
       res.status(500).json({
@@ -188,7 +187,7 @@ async function checkAndSendReminders() {
     `);
     due = result.rows;
   } catch (error) {
-    console.error("リマインダー確認クエリエラー:", error);
+    console.error("リマインダー確認クエリー失敗:", error instanceof Error ? error.name : "UnknownError");
     return;
   }
 
@@ -247,14 +246,10 @@ async function checkAndSendReminders() {
           console.log(`リマインダー送信成功: id=${reminder.id}`);
         }
       } else {
-        const body = await res.text();
-
-        console.error(
-          `リマインダー送信失敗: id=${reminder.id}, status=${res.status}, body=${body}`,
-        );
+        console.error(`リマインダー送信失敗: id=${reminder.id}, status=${res.status}`);
       }
     } catch (error) {
-      console.error(`リマインダー送信エラー: id=${reminder.id}`, error);
+      console.error(`リマインダー送信エラー: id=${reminder.id}`, error instanceof Error ? error.name : "UnknownError");
     }
   }
 }
@@ -305,13 +300,10 @@ async function sendDailyAIReport() {
       }
     );
 
-    console.log(
-      "AI REPORT RESULT:",
-      await res.text()
-    );
+    console.log("AI REPORT RESPONSE STATUS:", res.status);
 
   } catch(error) {
-    console.error("AI REPORT ERROR:", error);
+    console.error("AI REPORT FAILED:", error instanceof Error ? error.name : "UnknownError");
   }
 }
 
@@ -320,11 +312,11 @@ async function sendDailyAIReport() {
 // 予期しないエラーのログ(原因究明用)
 // =================================
 process.on("uncaughtException", (err) => {
-  console.error("UNCAUGHT EXCEPTION:", err);
+  console.error("UNCAUGHT EXCEPTION:", err instanceof Error ? err.name : "UnknownError");
 });
 
 process.on("unhandledRejection", (reason) => {
-  console.error("UNHANDLED REJECTION:", reason);
+  console.error("UNHANDLED REJECTION:", reason instanceof Error ? reason.name : "UnknownError");
 });
 
 // =================================
