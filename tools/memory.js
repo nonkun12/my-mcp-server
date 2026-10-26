@@ -61,7 +61,7 @@ export function registerMemoryTools(server) {
           content: [
             {
               type: "text",
-              text: "保存エラー: " + error.message
+              text: "記憶の保存に失敗しました。"
             }
           ]
         };
@@ -123,7 +123,7 @@ export function registerMemoryTools(server) {
           content: [
             {
               type: "text",
-              text: "取得エラー: " + error.message
+              text: "記憶の取得に失敗しました。"
             }
           ]
         };
@@ -168,7 +168,7 @@ export function registerMemoryTools(server) {
           content: [
             {
               type: "text",
-              text: "削除エラー: " + error.message
+              text: "記憶の削除に失敗しました。"
             }
           ]
         };
