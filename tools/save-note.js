@@ -8,10 +8,10 @@ export function registerSaveNoteTool(server) {
       title: "Save Note",
       description: "ユーザーのメモを保存します",
       inputSchema: {
-        user_id: z.string().describe("LINEユーザーID"),
-        title: z.string().describe("メモタイトル"),
-        body: z.string().describe("メモ内容"),
-        category: z.string().optional().describe("メモカテゴリ")
+        user_id: z.string().min(1).max(200).describe("LINEユーザーID"),
+        title: z.string().min(1).max(200).describe("メモタイトル"),
+        body: z.string().min(1).max(10000).describe("メモ内容"),
+        category: z.string().max(100).optional().describe("メモカテゴリ")
       }
     },
     async ({ user_id, title, body, category = "一般" }) => {
