@@ -46,7 +46,7 @@ export function registerDeleteNoteTool(server) {
           content: [
             {
               type: "text",
-              text: "削除エラー: " + error.message
+              text: "メモの削除に失敗しました。"
             }
           ]
         };
