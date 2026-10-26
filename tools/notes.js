@@ -178,7 +178,7 @@ export function registerNoteTools(server) {
     },
     async ({ user_id, id }) => {
 
-      console.log("DELETE CHECK:", id, user_id);
+
 
       const check = await pool.query(
         `
@@ -189,7 +189,7 @@ export function registerNoteTools(server) {
         [id]
       );
 
-      console.log("DELETE TARGET:", check.rows);
+
 
       const result = await pool.query(
         `
