@@ -38,7 +38,7 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id, remind_at, message, repeat }) => {
-      console.log(`[LOG] tool set_reminder invoked: user_id=${user_id}`);
+      console.log("[LOG] tool set_reminder invoked");
       console.log("[TOOL CALL] set_reminder");
 
       const repeatValue = repeat === "daily" ? "daily" : "none";
@@ -104,7 +104,7 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id }) => {
-      console.log(`[LOG] tool list_reminders invoked: user_id=${user_id}`);
+      console.log("[LOG] tool list_reminders invoked");
       console.log("[TOOL CALL] list_reminders");
 
       try {
@@ -175,7 +175,7 @@ export function registerReminderTools(server) {
 
     async ({ user_id, id }) => {
       console.log(`[LOG] tool cancel_reminder invoked: user_id=${user_id}, id=${id}`);
-      console.error(`[TOOL CALL] cancel_reminder user_id=${user_id} id=${id}`);
+      console.log("[TOOL CALL] cancel_reminder");
 
       try {
         const result = await pool.query(
