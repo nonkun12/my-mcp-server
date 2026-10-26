@@ -41,3 +41,22 @@ test("legacy hard-coded reminder deletion script is disabled", async () => {
   assert.match(source, /disabled for safety/i);
   assert.doesNotMatch(source, /DELETE FROM reminders/i);
 });
+
+
+test("MCP tool inputs have explicit bounds for identifiers and large text fields", async () => {
+  const memory = await read("../tools/memory.js");
+  const reminders = await read("../tools/reminder.js");
+  const saveNote = await read("../tools/save-note.js");
+  const searchNotes = await read("../tools/search-notes.js");
+  const listNotes = await read("../tools/list-notes.js");
+  const deleteNote = await read("../tools/delete-note.js");
+  const deleteAllNotes = await read("../tools/delete-all-notes.js");
+
+  for (const source of [memory, reminders, saveNote, searchNotes, listNotes, deleteNote, deleteAllNotes]) {
+    assert.match(source, /user_id:\\s*z\\.string\\(\\)\\.min\\(1\\)\\.max\\(200\\)/);
+  }
+  assert.match(memory, /value:\\s*z\\.string\\(\\)\\.max\\(10000\\)/);
+  assert.match(saveNote, /body:\\s*z\\.string\\(\\)\\.min\\(1\\)\\.max\\(10000\\)/);
+  assert.match(searchNotes, /keyword:\\s*z\\.string\\(\\)\\.min\\(1\\)\\.max\\(200\\)/);
+  assert.match(reminders, /message:\\s*z\\.string\\(\\)\\.min\\(1\\)\\.max\\(2000\\)/);
+});
