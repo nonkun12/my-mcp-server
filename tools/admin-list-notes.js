@@ -21,7 +21,8 @@ export function registerAdminListNotesTool(server) {
       }
     },
     async ({ secret }) => {
-      if (!safeCompare(secret, process.env.MCP_API_KEY)) {
+      const adminKey = process.env.MCP_ADMIN_API_KEY;
+      if (!adminKey || adminKey === process.env.MCP_API_KEY || !safeCompare(secret, adminKey)) {
         return { content: [{ type: "text", text: "認証エラー" }] };
       }
 
