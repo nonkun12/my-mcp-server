@@ -39,7 +39,7 @@ export function registerReminderTools(server) {
 
     async ({ user_id, remind_at, message, repeat }) => {
       console.log(`[LOG] tool set_reminder invoked: user_id=${user_id}`);
-      console.error(`[TOOL CALL] set_reminder user_id=${user_id} remind_at=${remind_at} message=${message} repeat=${repeat}`);
+      console.log("[TOOL CALL] set_reminder");
 
       const repeatValue = repeat === "daily" ? "daily" : "none";
 
@@ -51,7 +51,7 @@ export function registerReminderTools(server) {
             content: [
               {
                 type: "text",
-                text: `日時の形式が正しくありません: ${remind_at}`
+                text: "日時の形式が正しくありません。"
               }
             ]
           };
@@ -81,7 +81,7 @@ export function registerReminderTools(server) {
           content: [
             {
               type: "text",
-              text: "登録エラー: " + error.message
+              text: "リマインダーの登録に失敗しました。"
             }
           ]
         };
@@ -105,7 +105,7 @@ export function registerReminderTools(server) {
 
     async ({ user_id }) => {
       console.log(`[LOG] tool list_reminders invoked: user_id=${user_id}`);
-      console.error(`[TOOL CALL] list_reminders user_id=${user_id}`);
+      console.log("[TOOL CALL] list_reminders");
 
       try {
         const result = await pool.query(
