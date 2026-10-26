@@ -53,10 +53,10 @@ test("MCP tool inputs have explicit bounds for identifiers and large text fields
   const deleteAllNotes = await read("../tools/delete-all-notes.js");
 
   for (const source of [memory, reminders, saveNote, searchNotes, listNotes, deleteNote, deleteAllNotes]) {
-    assert.match(source, /user_id:\\s*z\\.string\\(\\)\\.min\\(1\\)\\.max\\(200\\)/);
+    assert.ok(source.includes("user_id: z.string().min(1).max(200)"));
   }
-  assert.match(memory, /value:\\s*z\\.string\\(\\)\\.max\\(10000\\)/);
-  assert.match(saveNote, /body:\\s*z\\.string\\(\\)\\.min\\(1\\)\\.max\\(10000\\)/);
-  assert.match(searchNotes, /keyword:\\s*z\\.string\\(\\)\\.min\\(1\\)\\.max\\(200\\)/);
-  assert.match(reminders, /message:\\s*z\\.string\\(\\)\\.min\\(1\\)\\.max\\(2000\\)/);
+  assert.ok(memory.includes("value: z.string().max(10000)"));
+  assert.ok(saveNote.includes("body: z.string().min(1).max(10000)"));
+  assert.ok(searchNotes.includes("keyword: z.string().min(1).max(200)"));
+  assert.ok(reminders.includes("message: z.string().min(1).max(2000)"));
 });
