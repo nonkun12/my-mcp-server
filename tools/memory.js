@@ -211,7 +211,7 @@ export function registerMemoryTools(server) {
           content: [
             {
               type: "text",
-              text: "削除エラー: " + error.message
+              text: "記憶の処理に失敗しました。"
             }
           ]
         };
@@ -232,7 +232,6 @@ export function registerMemoryTools(server) {
 
     async ({ user_id }) => {
       try {
-        console.log("GET_ALL_MEMORY START:", user_id);
 
         const result = await pool.query(
           `
@@ -250,7 +249,6 @@ export function registerMemoryTools(server) {
           [user_id]
         );
 
-        console.log("GET_ALL_MEMORY RESULT:", result.rows);
 
         return {
           content: [
@@ -266,7 +264,7 @@ export function registerMemoryTools(server) {
           content: [
             {
               type: "text",
-              text: "取得エラー: " + error.message
+              text: "記憶の処理に失敗しました。"
             }
           ]
         };
