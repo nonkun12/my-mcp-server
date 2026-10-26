@@ -180,14 +180,6 @@ export function registerNoteTools(server) {
 
 
 
-      const check = await pool.query(
-        `
-        SELECT id, user_id, title
-        FROM notes
-        WHERE id=$1
-        `,
-        [id]
-      );
 
 
 
