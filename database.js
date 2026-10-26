@@ -12,7 +12,7 @@ const pool = new Pool({
 
 // 接続エラー監視
 pool.on("error", (err) => {
-  console.error("PG POOL ERROR:", err);
+  console.error("PG POOL ERROR:", err instanceof Error ? err.name : "UnknownError");
 });
 
 
