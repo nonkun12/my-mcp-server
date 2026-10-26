@@ -4,6 +4,16 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
+
+test("MCP endpoint fails closed without a key and compares supplied keys safely", async () => {
+  const source = await read("../index.js");
+  assert.match(source, /function safeCompare\(a, b\)/);
+  assert.match(source, /crypto\.timingSafeEqual\(aBuf, bBuf\)/);
+  assert.match(source, /if \(!MCP_API_KEY\)/);
+  assert.match(source, /req\.header\(["']x-api-key["']\)/);
+  assert.match(source, /return res\.status\(401\)/);
+});
+
 test("MCP HTTP payload size is bounded and raw request bodies are not logged", async () => {
   const source = await read("../index.js");
   assert.match(source, /express\.json\(\{\s*limit:\s*["']256kb["']\s*\}\)/);
