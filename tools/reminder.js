@@ -150,7 +150,7 @@ export function registerReminderTools(server) {
           content: [
             {
               type: "text",
-              text: "取得エラー: " + error.message
+              text: "リマインダーの処理に失敗しました。"
             }
           ]
         };
@@ -174,7 +174,7 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id, id }) => {
-      console.log(`[LOG] tool cancel_reminder invoked: user_id=${user_id}, id=${id}`);
+      console.log("[LOG] tool cancel_reminder invoked");
       console.log("[TOOL CALL] cancel_reminder");
 
       try {
@@ -213,7 +213,7 @@ export function registerReminderTools(server) {
           content: [
             {
               type: "text",
-              text: "キャンセルエラー: " + error.message
+              text: "リマインダーの処理に失敗しました。"
             }
           ]
         };
@@ -237,8 +237,8 @@ export function registerReminderTools(server) {
     },
 
     async ({ user_id }) => {
-      console.log(`[LOG] tool get_today_schedule invoked: user_id=${user_id}`);
-      console.error(`[TOOL CALL] get_today_schedule user_id=${user_id}`);
+      console.log("[LOG] tool get_today_schedule invoked");
+      console.log("[TOOL CALL] get_today_schedule");
 
       try {
         const result = await pool.query(
@@ -275,7 +275,7 @@ export function registerReminderTools(server) {
           content: [
             {
               type: "text",
-              text: "取得エラー: " + error.message
+              text: "リマインダーの処理に失敗しました。"
             }
           ]
         };
