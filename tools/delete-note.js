@@ -8,7 +8,7 @@ export function registerDeleteNoteTool(server) {
       title: "Delete Note",
       description: "指定したIDのメモを削除します",
       inputSchema: {
-        user_id: z.string().describe("LINEユーザーID"),
+        user_id: z.string().min(1).max(200).describe("LINEユーザーID"),
         id: z.coerce.number().describe("削除するメモのID")
       }
     },
