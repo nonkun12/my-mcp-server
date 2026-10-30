@@ -63,3 +63,28 @@ test("health handler returns 503 when PostgreSQL query fails", async () => {
   assert.equal(logged.length, 1);
   assert.equal(logged[0][1], expectedError);
 });
+
+test("health handler returns 503 when database check stalls", async () => {
+  const logged = [];
+  const db = {
+    query() {
+      return new Promise(() => {});
+    },
+  };
+  const response = createResponse();
+
+  await createHealthHandler(
+    db,
+    { error(...args) { logged.push(args); } },
+    5,
+  )({}, response);
+
+  assert.equal(response.statusCode, 503);
+  assert.deepEqual(response.body, {
+    ok: false,
+    service: "memory-mcp-server",
+    checks: { database: "error" },
+  });
+  assert.equal(logged.length, 1);
+  assert.match(logged[0][1].message, /timed out/);
+});
