@@ -5,6 +5,7 @@ const { Pool } = pg;
 // Render Postgres / Supabase Postgres接続
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 3000,
   ssl: {
     rejectUnauthorized: false
   }
@@ -72,6 +73,7 @@ async function initDb() {
     ALTER TABLE reminders
     ADD COLUMN IF NOT EXISTS repeat TEXT NOT NULL DEFAULT 'none'
   `);
+
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notes (
