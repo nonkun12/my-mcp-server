@@ -34,7 +34,7 @@ export function registerDeleteAllNotesTool(server) {
           content: [
             {
               type: "text",
-              text: "削除エラー: " + error.message
+              text: "削除エラー: " + "処理に失敗しました"
             }
           ]
         };

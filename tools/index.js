@@ -5,8 +5,9 @@ import { registerSearchNotesTool } from "./search-notes.js";
 import { registerListNotesTool } from "./list-notes.js";
 import { registerDeleteNoteTool } from "./delete-note.js";
 import { registerDeleteAllNotesTool } from "./delete-all-notes.js";
-import { registerAdminListNotesTool } from "./admin-list-notes.js";
 
+// Administrative cross-user note listing is deliberately not exposed through
+// the public MCP endpoint. It must use a separately authenticated admin surface.
 const TOOL_REGISTRARS = [
   registerMemoryTools,
   registerReminderTools,
@@ -15,11 +16,8 @@ const TOOL_REGISTRARS = [
   registerListNotesTool,
   registerDeleteNoteTool,
   registerDeleteAllNotesTool,
-  registerAdminListNotesTool
 ];
 
 export function registerAllTools(server) {
-  for (const register of TOOL_REGISTRARS) {
-    register(server);
-  }
+  for (const register of TOOL_REGISTRARS) register(server);
 }
