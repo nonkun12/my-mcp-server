@@ -2,26 +2,19 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-// Render Postgres / Supabase Postgres接続
+// Keep pool construction synchronous so the HTTP listener can start even when
+// PostgreSQL is temporarily unavailable. Schema initialization is explicit.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 3000,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false },
 });
 
-// 接続エラー監視
-pool.on("error", (err) => {
-  console.error("PG POOL ERROR:", err);
+pool.on("error", (error) => {
+  console.error("PG POOL ERROR:", error?.name ?? "Error");
 });
 
-
-async function initDb() {
-
-  // =========================
-  // AI Memory
-  // =========================
+export async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS memories (
       user_id TEXT NOT NULL,
@@ -30,32 +23,11 @@ async function initDb() {
       PRIMARY KEY (user_id, key)
     )
   `);
+  await pool.query("ALTER TABLE memories ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general'");
+  await pool.query("ALTER TABLE memories ADD COLUMN IF NOT EXISTS importance TEXT DEFAULT 'normal'");
+  await pool.query("ALTER TABLE memories ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()");
+  await pool.query("ALTER TABLE memories ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()");
 
-
-  await pool.query(`
-    ALTER TABLE memories
-    ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general'
-  `);
-
-  await pool.query(`
-    ALTER TABLE memories
-    ADD COLUMN IF NOT EXISTS importance TEXT DEFAULT 'normal'
-  `);
-
-  await pool.query(`
-    ALTER TABLE memories
-    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()
-  `);
-
-  await pool.query(`
-    ALTER TABLE memories
-    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
-  `);
-
-
-  // =========================
-  // Reminder
-  // =========================
   await pool.query(`
     CREATE TABLE IF NOT EXISTS reminders (
       id SERIAL PRIMARY KEY,
@@ -66,14 +38,7 @@ async function initDb() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-
-
-  // 既存remindersへ追加
-  await pool.query(`
-    ALTER TABLE reminders
-    ADD COLUMN IF NOT EXISTS repeat TEXT NOT NULL DEFAULT 'none'
-  `);
-
+  await pool.query("ALTER TABLE reminders ADD COLUMN IF NOT EXISTS repeat TEXT NOT NULL DEFAULT 'none'");
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notes (
@@ -84,18 +49,9 @@ async function initDb() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+  await pool.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '一般'");
 
-  await pool.query(`
-    ALTER TABLE notes
-    ADD COLUMN IF NOT EXISTS category TEXT DEFAULT '一般'
-  `);
-
-  console.error("✅ PostgreSQL接続・テーブル初期化 完了");
+  console.log("PostgreSQL schema initialization complete");
 }
-
-
-// 起動時DB初期化
-await initDb();
-
 
 export default pool;
