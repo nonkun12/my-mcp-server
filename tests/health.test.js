@@ -1,90 +1,75 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createHealthHandler } from "../health.js";
+import {
+  createLivenessHandler,
+  createReadinessHandler,
+  createDatabaseReadyMiddleware,
+} from "../health.js";
 
 function createResponse() {
   return {
     statusCode: null,
     body: null,
-    status(code) {
-      this.statusCode = code;
-      return this;
-    },
-    json(body) {
-      this.body = body;
-      return this;
-    },
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; },
   };
 }
 
-test("health handler returns 200 when PostgreSQL responds", async () => {
-  const calls = [];
-  const db = {
-    async query(config) {
-      calls.push(config);
-      return { rows: [{ "?column?": 1 }] };
-    },
-  };
+test("liveness remains 200 independently of database state", () => {
   const response = createResponse();
-
-  await createHealthHandler(db, { error() {} })({}, response);
-
+  createLivenessHandler()({}, response);
   assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.body, {
-    ok: true,
-    service: "memory-mcp-server",
-    checks: { database: "ok" },
-  });
+  assert.equal(response.body.status, "alive");
+});
+
+test("readiness is 503 until schema initialization completes", async () => {
+  const response = createResponse();
+  const handler = createReadinessHandler(
+    { async query() { throw new Error("must not query"); } },
+    () => false,
+    { error() {} },
+  );
+  await handler({}, response);
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.body.checks.database, "initializing");
+});
+
+test("readiness returns 200 when database is initialized and responds", async () => {
+  const calls = [];
+  const response = createResponse();
+  const handler = createReadinessHandler(
+    { async query(config) { calls.push(config); return { rows: [{ value: 1 }] }; } },
+    () => true,
+    { error() {} },
+  );
+  await handler({}, response);
+  assert.equal(response.statusCode, 200);
   assert.deepEqual(calls, [{ text: "SELECT 1", query_timeout: 3000 }]);
 });
 
-test("health handler returns 503 when PostgreSQL query fails", async () => {
-  const expectedError = new Error("database unavailable");
-  const logged = [];
-  const db = {
-    async query() {
-      throw expectedError;
-    },
-  };
+test("readiness returns 503 when database query fails", async () => {
   const response = createResponse();
-
-  await createHealthHandler(db, {
-    error(...args) {
-      logged.push(args);
-    },
-  })({}, response);
-
+  const handler = createReadinessHandler(
+    { async query() { throw new Error("private database details"); } },
+    () => true,
+    { error() {} },
+  );
+  await handler({}, response);
   assert.equal(response.statusCode, 503);
-  assert.deepEqual(response.body, {
-    ok: false,
-    service: "memory-mcp-server",
-    checks: { database: "error" },
-  });
-  assert.equal(logged.length, 1);
-  assert.equal(logged[0][1], expectedError);
+  assert.equal(response.body.checks.database, "error");
+  assert.equal(JSON.stringify(response.body).includes("private"), false);
 });
 
-test("health handler returns 503 when database check stalls", async () => {
-  const logged = [];
-  const db = {
-    query() {
-      return new Promise(() => {});
-    },
-  };
+test("MCP readiness middleware blocks requests before database initialization", () => {
   const response = createResponse();
-
-  await createHealthHandler(
-    db,
-    { error(...args) { logged.push(args); } },
-    5,
-  )({}, response);
-
+  let nextCalled = false;
+  createDatabaseReadyMiddleware(() => false)({}, response, () => { nextCalled = true; });
   assert.equal(response.statusCode, 503);
-  assert.deepEqual(response.body, {
-    ok: false,
-    service: "memory-mcp-server",
-    checks: { database: "error" },
-  });
-  assert.equal(logged.length, 1);
-  assert.match(logged[0][1].message, /timed out/);
+  assert.equal(nextCalled, false);
+});
+
+test("MCP readiness middleware allows requests after database initialization", () => {
+  let nextCalled = false;
+  createDatabaseReadyMiddleware(() => true)({}, createResponse(), () => { nextCalled = true; });
+  assert.equal(nextCalled, true);
 });
