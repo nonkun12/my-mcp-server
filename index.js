@@ -6,6 +6,8 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { registerAllTools } from "./tools/index.js";
 import db from "./database.js"; // db = pg.Pool (Postgres接続プール)
 import { createHealthHandler } from "./health.js";
+import { startReminderScheduler } from "./reminder-scheduler.js";
+import { logReminderBatchSummary } from "./reminder-batch-log.js";
 
 const app = express();
 
@@ -188,81 +190,24 @@ async function checkAndSendReminders() {
     return;
   }
 
-  for (const reminder of due) {
+  // LINE送信は別途承認・実装確認が済むまで停止する。
+  // 個々のIDを出力せず、件数だけを一度記録して終了する。
+  logReminderBatchSummary(due.length);
+  return;
 
-    console.log(`[TEST] LINE送信停止中 reminder id=${reminder.id}`);
-    continue;
-
-
-    // 通知直前にキャンセル済みか再確認
-    const check = await db.query(
-      `
-      SELECT id
-      FROM reminders
-      WHERE id = $1 AND sent = false
-      `,
-      [reminder.id],
-    );
-
-    if (check.rowCount === 0) {
-      console.log(`[SKIP] reminder id=${reminder.id} already cancelled`);
-      continue;
-    }
-
-    try {
-      const res = await fetch(LINE_BOT_PUSH_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-internal-key": INTERNAL_PUSH_KEY,
-        },
-        body: JSON.stringify({
-          user_id: reminder.user_id,
-          message: reminder.message,
-        }),
-      });
-
-      if (res.ok) {
-        if (reminder.repeat === "daily") {
-          // 単発リマインダーとは異なり、sentはfalseのままにして、
-          // remind_atだけ翌日の同時刻へ進める。これにより次回のループで
-          // 再び拾われ、毎日繰り返し送信される。
-          await db.query(
-            "UPDATE reminders SET remind_at = remind_at + interval '1 day' WHERE id = $1",
-            [reminder.id],
-          );
-
-          console.log(
-            `リマインダー送信成功(繰り返し・次回へ更新): id=${reminder.id}`,
-          );
-        } else {
-          await db.query("UPDATE reminders SET sent = true WHERE id = $1", [
-            reminder.id,
-          ]);
-
-          console.log(`リマインダー送信成功: id=${reminder.id}`);
-        }
-      } else {
-        const body = await res.text();
-
-        console.error(
-          `リマインダー送信失敗: id=${reminder.id}, status=${res.status}, body=${body}`,
-        );
-      }
-    } catch (error) {
-      console.error(`リマインダー送信エラー: id=${reminder.id}`, error);
-    }
-  }
 }
 
-if (LINE_BOT_PUSH_URL && INTERNAL_PUSH_KEY) {
-  setInterval(checkAndSendReminders, 60 * 1000);
-  console.log("リマインダー・スケジューラーを起動しました(60秒間隔)");
-} else {
-  console.warn(
-    "LINE_BOT_PUSH_URL または INTERNAL_PUSH_KEY が未設定のため、リマインダー送信は無効です",
-  );
-}
+// 安全側を既定値にする。送信・定期処理は明示的な環境変数がない限り起動しない。
+const REMINDER_SCHEDULER_ENABLED =
+  process.env.REMINDER_SCHEDULER_ENABLED === "true";
+
+startReminderScheduler({
+  enabled:
+    REMINDER_SCHEDULER_ENABLED &&
+    Boolean(LINE_BOT_PUSH_URL && INTERNAL_PUSH_KEY),
+  check: checkAndSendReminders,
+  intervalMs: 60 * 1000,
+});
 
 
 
