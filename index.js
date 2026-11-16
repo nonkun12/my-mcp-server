@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { registerAllTools } from "./tools/index.js";
 import db from "./database.js"; // db = pg.Pool (Postgres接続プール)
 import { createHealthHandler } from "./health.js";
+import { startReminderScheduler } from "./reminder-scheduler.js";
 
 const app = express();
 
@@ -255,14 +256,17 @@ async function checkAndSendReminders() {
   }
 }
 
-if (LINE_BOT_PUSH_URL && INTERNAL_PUSH_KEY) {
-  setInterval(checkAndSendReminders, 60 * 1000);
-  console.log("リマインダー・スケジューラーを起動しました(60秒間隔)");
-} else {
-  console.warn(
-    "LINE_BOT_PUSH_URL または INTERNAL_PUSH_KEY が未設定のため、リマインダー送信は無効です",
-  );
-}
+// 安全側を既定値にする。送信・定期処理は明示的な環境変数がない限り起動しない。
+const REMINDER_SCHEDULER_ENABLED =
+  process.env.REMINDER_SCHEDULER_ENABLED === "true";
+
+startReminderScheduler({
+  enabled:
+    REMINDER_SCHEDULER_ENABLED &&
+    Boolean(LINE_BOT_PUSH_URL && INTERNAL_PUSH_KEY),
+  check: checkAndSendReminders,
+  intervalMs: 60 * 1000,
+});
 
 
 
