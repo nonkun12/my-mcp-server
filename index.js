@@ -7,6 +7,7 @@ import { registerAllTools } from "./tools/index.js";
 import db from "./database.js"; // db = pg.Pool (Postgres接続プール)
 import { createHealthHandler } from "./health.js";
 import { startReminderScheduler } from "./reminder-scheduler.js";
+import { logReminderBatchSummary } from "./reminder-batch-log.js";
 
 const app = express();
 
@@ -189,10 +190,13 @@ async function checkAndSendReminders() {
     return;
   }
 
-  for (const reminder of due) {
+  // LINE送信は別途承認・実装確認が済むまで停止する。
+  // 個々のIDを出力せず、件数だけを一度記録して終了する。
+  logReminderBatchSummary(due.length);
+  return;
 
-    console.log(`[TEST] LINE送信停止中 reminder id=${reminder.id}`);
-    continue;
+  /*
+  for (const reminder of due) {
 
 
     // 通知直前にキャンセル済みか再確認
@@ -254,6 +258,7 @@ async function checkAndSendReminders() {
       console.error(`リマインダー送信エラー: id=${reminder.id}`, error);
     }
   }
+  */
 }
 
 // 安全側を既定値にする。送信・定期処理は明示的な環境変数がない限り起動しない。
