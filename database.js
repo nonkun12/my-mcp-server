@@ -1,4 +1,5 @@
 import pg from "pg";
+import { runWithDatabaseRetry } from "./database-retry.js";
 
 const { Pool } = pg;
 
@@ -95,7 +96,11 @@ async function initDb() {
 
 
 // 起動時DB初期化
-await initDb();
+await runWithDatabaseRetry(initDb, {
+  maxAttempts: 3,
+  baseDelayMs: 500,
+  maxDelayMs: 2000,
+});
 
 
 export default pool;
